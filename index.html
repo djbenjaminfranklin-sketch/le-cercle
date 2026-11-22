@@ -1,0 +1,1118 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Le Cercle</title>
+<meta name="description" content="Le Cercle — l'appli privée d'un marchand de montres d'exception. On n'y entre que sur invitation.">
+<meta name="theme-color" content="#0a0a0b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Le Cercle">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<meta property="og:title" content="Le Cercle">
+<meta property="og:description" content="On n'y entre que sur invitation.">
+<meta property="og:image" content="og.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root{
+  --bg:#0a0a0b; --bg2:#121214; --card:#17171a; --card2:#1e1e22; --line:#2a2a2f;
+  --ivory:#f2ede4; --muted:#9a968f; --dim:#6b6862;
+  --plat:#cfd2d6; --green:#2f5d4f; --green2:#4e8b76; --red:#b24a4a; --rose:#c9a99a;
+  --serif:'Cormorant Garamond', Georgia, serif; --sans:'Inter', -apple-system, system-ui, sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ivory);font-family:var(--sans);font-weight:400;-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input,textarea{font:inherit;color:var(--ivory)}
+img{display:block;max-width:100%}
+
+/* ---------- Mise en page bureau ---------- */
+.stage{height:100%;display:grid;grid-template-columns:minmax(300px,420px) auto minmax(260px,340px);gap:56px;align-items:center;justify-content:center;padding:24px 40px;
+  background:radial-gradient(1200px 700px at 50% 40%,#17171b 0%,#0a0a0b 60%)}
+.pitch h1{font-family:var(--serif);font-weight:400;font-size:64px;letter-spacing:.02em;line-height:1}
+.pitch .kicker{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--muted);margin-bottom:18px}
+.pitch p.lead{font-family:var(--serif);font-size:22px;color:#d9d3c8;margin:18px 0 28px;line-height:1.35;font-style:italic}
+.tour{display:flex;flex-direction:column;gap:2px;max-height:52vh;overflow:auto;padding-right:6px}
+.tour button{display:flex;gap:14px;align-items:baseline;text-align:left;padding:9px 12px;border-radius:10px;color:#cfc9be;font-size:14px;transition:.2s}
+.tour button span{font-family:var(--serif);font-size:15px;color:var(--dim);min-width:22px}
+.tour button:hover,.tour button.on{background:#1a1a1e;color:#fff}
+.tour button.on span{color:var(--rose)}
+.side h3{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);margin-bottom:16px}
+.side .new{border-left:1px solid var(--line);padding:4px 0 4px 18px;margin-bottom:18px}
+.side .new b{display:block;font-family:var(--serif);font-weight:500;font-size:20px;margin-bottom:4px}
+.side .new small{color:var(--muted);font-size:13px;line-height:1.5}
+.side .foot{margin-top:24px;font-size:11px;color:var(--dim);line-height:1.6}
+.side .foot a{color:var(--muted)}
+
+/* ---------- Téléphone ---------- */
+.phone{width:393px;height:min(852px,calc(100vh - 48px));border-radius:56px;padding:12px;background:linear-gradient(145deg,#2b2b30,#0d0d0f 40%,#26262b);box-shadow:0 0 0 1px #3a3a40,0 40px 120px rgba(0,0,0,.7),inset 0 0 0 2px #000;position:relative}
+.screenwrap{width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;background:var(--bg)}
+.island{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:120px;height:34px;border-radius:20px;background:#000;z-index:60}
+.status{position:absolute;top:0;left:0;right:0;height:54px;display:flex;justify-content:space-between;align-items:center;padding:6px 34px 0;font-size:15px;font-weight:600;z-index:55;pointer-events:none}
+.status .icons{display:flex;gap:6px;align-items:center}
+
+/* ---------- Mobile : plein écran ---------- */
+@media (max-width:1000px){
+  body{overflow:hidden}
+  .stage{display:block;padding:0;background:var(--bg)}
+  .pitch,.side{display:none}
+  .phone{width:100%;height:100%;border-radius:0;padding:0;background:none;box-shadow:none}
+  .screenwrap{border-radius:0}
+  .island,.status{display:none}
+  .tourbtn{display:flex!important}
+}
+.tourbtn{display:none;position:fixed;right:14px;bottom:calc(92px + env(safe-area-inset-bottom));z-index:90;width:44px;height:44px;border-radius:50%;background:rgba(30,30,34,.85);backdrop-filter:blur(12px);border:1px solid var(--line);align-items:center;justify-content:center;font-family:var(--serif);font-size:20px}
+.tourpanel{position:fixed;inset:0;background:rgba(5,5,6,.94);backdrop-filter:blur(20px);z-index:95;padding:60px 24px 24px;display:none;overflow:auto}
+.tourpanel.open{display:block}
+.tourpanel h2{font-family:var(--serif);font-weight:400;font-size:40px}
+.tourpanel .tour{max-height:none;margin-top:20px}
+.tourpanel .x{position:absolute;top:18px;right:18px;font-size:26px;color:var(--muted)}
+
+/* ---------- Écrans ---------- */
+.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;opacity:0;pointer-events:none;transform:translateX(30px);transition:opacity .45s ease,transform .45s cubic-bezier(.2,.8,.2,1);background:var(--bg);padding-bottom:110px;scrollbar-width:none}
+.screen::-webkit-scrollbar{display:none}
+.screen.on{opacity:1;pointer-events:auto;transform:none}
+.screen.back{transform:translateX(-30px)}
+.pad{padding:64px 22px 0}
+@media (max-width:1000px){.pad{padding-top:calc(24px + env(safe-area-inset-top))}}
+.serif{font-family:var(--serif)}
+.eyebrow{font-size:10.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted)}
+.h1{font-family:var(--serif);font-weight:400;font-size:38px;line-height:1.05}
+.h2{font-family:var(--serif);font-weight:400;font-size:28px;line-height:1.1}
+.h3{font-family:var(--serif);font-weight:500;font-size:21px}
+.muted{color:var(--muted)} .dim{color:var(--dim)}
+.small{font-size:12.5px;line-height:1.5}
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:54px;border-radius:16px;background:var(--ivory);color:#0b0b0c;font-weight:500;font-size:15px;letter-spacing:.01em;transition:transform .15s,opacity .2s}
+.btn:active{transform:scale(.98)}
+.btn.ghost{background:transparent;color:var(--ivory);border:1px solid #3a3a40}
+.btn.dark{background:#1c1c20;color:var(--ivory)}
+.btn.green{background:var(--green);color:#fff}
+.btn[disabled]{opacity:.35}
+.row{display:flex;align-items:center;gap:12px}
+.between{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.card{background:var(--card);border:1px solid #222226;border-radius:20px;padding:18px}
+.hr{height:1px;background:var(--line);margin:18px 0}
+.backbtn{position:absolute;top:58px;left:16px;z-index:30;width:40px;height:40px;border-radius:50%;background:rgba(18,18,20,.6);backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.08)}
+@media (max-width:1000px){.backbtn{top:calc(14px + env(safe-area-inset-top))}}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:30px;border:1px solid #33333a;font-size:13px;color:#d8d2c6;transition:.2s}
+.chip.on{background:var(--ivory);color:#0b0b0c;border-color:var(--ivory)}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:20px;font-size:11px;letter-spacing:.06em;background:rgba(255,255,255,.08);backdrop-filter:blur(10px)}
+.pill.g{background:rgba(47,93,79,.35);color:#a9dcc9}
+.pill.r{background:rgba(178,74,74,.25);color:#f0b3b3}
+.field{display:block;margin-bottom:14px}
+.field span{display:block;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.field input,.field textarea{width:100%;background:var(--card);border:1px solid #2a2a2f;border-radius:14px;padding:15px 16px;font-size:16px;outline:none;transition:border .2s}
+.field input:focus,.field textarea:focus{border-color:#55555c}
+.check{width:22px;height:22px;border-radius:50%;background:var(--green);display:inline-flex;align-items:center;justify-content:center;flex:none}
+
+/* Tab bar */
+.tabbar{position:absolute;left:0;right:0;bottom:0;height:88px;padding:8px 10px calc(22px + env(safe-area-inset-bottom));display:flex;justify-content:space-around;align-items:flex-start;background:linear-gradient(to top,rgba(10,10,11,.98) 60%,rgba(10,10,11,.0));z-index:50;transition:transform .4s cubic-bezier(.2,.8,.2,1)}
+.tabbar.hide{transform:translateY(110%)}
+.tabbar button{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:10px;letter-spacing:.08em;color:var(--dim);width:64px;padding-top:6px}
+.tabbar button.on{color:var(--ivory)}
+.tabbar svg{width:22px;height:22px}
+
+/* Splash */
+#s-splash{background:#050506;overflow:hidden}
+.splashbg{position:absolute;inset:0;background:url(img/nautilus2.jpg) center 30%/cover;opacity:.55;transform:scale(1.1);animation:kb 18s ease-in-out infinite alternate}
+@keyframes kb{to{transform:scale(1.22) translate(-2%,2%)}}
+.splashgrad{position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,5,6,.2) 0%,rgba(5,5,6,.35) 40%,#050506 78%)}
+.splashin{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:0 26px 46px}
+.mono{width:62px;height:62px;margin-bottom:22px}
+.logo-word{font-family:var(--serif);font-size:56px;font-weight:400;letter-spacing:.04em;line-height:1}
+.fade-up{animation:fu 1s cubic-bezier(.2,.8,.2,1) both}
+@keyframes fu{from{opacity:0;transform:translateY(18px)}}
+
+/* Accueil */
+.hero{position:relative;height:430px;margin:0 0 6px;overflow:hidden}
+.hero img{width:100%;height:100%;object-fit:cover;transform:scale(1.04)}
+.hero .g{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,10,11,.9) 0%,rgba(10,10,11,.55) 22%,rgba(10,10,11,.15) 42%,rgba(10,10,11,.3) 58%,var(--bg) 98%)}
+.hero .txt{position:absolute;left:22px;right:22px;bottom:18px}
+.timer{font-variant-numeric:tabular-nums;font-family:var(--sans);font-weight:300;letter-spacing:.04em}
+.hscroll{display:flex;gap:14px;overflow-x:auto;padding:4px 22px 6px;scroll-snap-type:x mandatory;scrollbar-width:none}
+.hscroll::-webkit-scrollbar{display:none}
+.wcard{flex:none;width:200px;scroll-snap-align:start;text-align:left}
+.wcard .ph{height:240px;border-radius:18px;overflow:hidden;background:#111;position:relative}
+.wcard .ph img{width:100%;height:100%;object-fit:cover;transition:transform .6s}
+.wcard:hover .ph img{transform:scale(1.05)}
+.wcard .ph .pill{position:absolute;top:10px;left:10px}
+.wcard b{display:block;font-family:var(--serif);font-weight:500;font-size:19px;margin-top:10px}
+.wcard small{color:var(--muted);font-size:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0 22px}
+.grid2 .wcard{width:auto}
+.grid2 .wcard .ph{height:200px}
+.locked .ph img{filter:blur(14px) brightness(.6);transform:scale(1.2)}
+.locked .lockov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#e8e2d6}
+.sect{display:flex;justify-content:space-between;align-items:baseline;padding:26px 22px 14px}
+.match{margin:8px 22px 0;display:flex;gap:14px;align-items:center;padding:14px;border-radius:18px;background:linear-gradient(120deg,#1b2622,#141416);border:1px solid #26362f}
+.match img{width:62px;height:62px;border-radius:12px;object-fit:cover}
+
+/* Fiche montre */
+.gal{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;height:470px;scrollbar-width:none}
+.gal::-webkit-scrollbar{display:none}
+.gal img{flex:none;width:100%;height:100%;object-fit:cover;scroll-snap-align:start}
+.dots{display:flex;gap:6px;justify-content:center;margin-top:-26px;position:relative;z-index:3}
+.dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.35)}
+.dots i.on{background:#fff}
+.specs{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-radius:16px;overflow:hidden;margin-top:18px}
+.specs div{background:var(--card);padding:13px 14px}
+.specs small{display:block;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin-bottom:4px}
+.pass li{list-style:none;display:flex;gap:14px;padding:12px 0;border-bottom:1px solid #222226;font-size:13.5px}
+.pass li:last-child{border:0}
+.pass .d{color:var(--dim);min-width:58px;font-variant-numeric:tabular-nums}
+.map{height:220px;border-radius:18px;overflow:hidden;margin-top:12px;position:relative;background:#111;isolation:isolate;z-index:0}
+.map .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.3)}
+.map .leaflet-container{background:#0e0f11}
+.mapov{position:absolute;left:12px;bottom:12px;z-index:500}
+.sticky{position:absolute;opacity:0;pointer-events:none;transition:opacity .35s;left:0;right:0;bottom:0;padding:14px 18px calc(26px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 70%,rgba(10,10,11,0));display:flex;gap:10px;z-index:40}
+.watchers{display:flex;align-items:center;gap:10px;font-size:12.5px;color:#d9d3c8;margin-top:14px}
+.avs{display:flex}
+.avs i{width:22px;height:22px;border-radius:50%;border:2px solid var(--bg);margin-left:-7px;background:linear-gradient(135deg,#555,#222)}
+.avs i:first-child{margin:0}
+
+/* Feuille de paiement */
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#1a1a1d;border-radius:28px 28px 0 0;padding:10px 22px calc(30px + env(safe-area-inset-bottom));z-index:80;transform:translateY(105%);transition:transform .45s cubic-bezier(.2,.8,.2,1)}
+.sheet.open{transform:none}
+.sheet .grab{width:40px;height:5px;border-radius:3px;background:#444;margin:0 auto 18px}
+.veil{position:absolute;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:.3s;z-index:79}
+.veil.open{opacity:1;pointer-events:auto}
+.apay{background:#fff;color:#000;height:54px;border-radius:14px;width:100%;font-weight:600;font-size:17px;display:flex;align-items:center;justify-content:center;gap:6px}
+
+/* Lieu sûr */
+.place{display:flex;gap:14px;align-items:center;padding:16px;border-radius:18px;background:var(--card);border:1px solid #232327;margin-bottom:10px;text-align:left;width:100%;transition:.2s}
+.place.on{border-color:var(--ivory);background:#1d1d21}
+.place .ic{width:46px;height:46px;border-radius:14px;background:#24242a;display:flex;align-items:center;justify-content:center;flex:none}
+.codebox{display:flex;gap:10px;justify-content:center;margin:14px 0}
+.codebox b{width:54px;height:66px;border-radius:14px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:38px;font-weight:500}
+
+/* Vidéo */
+#s-video{background:#000;padding:0}
+#s-video .vid{position:absolute;inset:0;overflow:hidden}
+#s-video .vid img{width:100%;height:100%;object-fit:cover;animation:vz 10s ease-in-out infinite alternate}
+@keyframes vz{from{transform:scale(1.05)}to{transform:scale(1.35) translate(3%,-3%)}}
+#s-video .vtop{position:absolute;top:60px;left:18px;right:18px;display:flex;justify-content:space-between;align-items:center;z-index:5}
+@media (max-width:1000px){#s-video .vtop{top:calc(16px + env(safe-area-inset-top))}}
+.live{display:inline-flex;gap:7px;align-items:center;font-size:11px;letter-spacing:.16em;background:rgba(0,0,0,.5);padding:7px 11px;border-radius:20px;backdrop-filter:blur(8px)}
+.live i{width:8px;height:8px;border-radius:50%;background:#e5484d;animation:blink 1.2s infinite}
+@keyframes blink{50%{opacity:.25}}
+.self{position:absolute;right:18px;top:110px;width:92px;height:128px;border-radius:16px;background:linear-gradient(160deg,#3a3532,#151313);border:1px solid rgba(255,255,255,.15);z-index:5;display:flex;align-items:center;justify-content:center;font-size:11px;color:#aaa}
+.vbottom{position:absolute;left:0;right:0;bottom:0;padding:20px 16px calc(36px + env(safe-area-inset-bottom));background:linear-gradient(to top,rgba(0,0,0,.85),transparent);z-index:5}
+.vasks{display:flex;gap:8px;overflow-x:auto;margin-bottom:22px;scrollbar-width:none}
+.vasks button{flex:none;padding:10px 14px;border-radius:24px;background:rgba(255,255,255,.14);backdrop-filter:blur(12px);font-size:13px}
+.vasks button.on{background:#fff;color:#000}
+.vctrl{display:flex;justify-content:center;gap:22px}
+.vctrl button{width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.16);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center}
+.vctrl .hang{background:#e5484d}
+.serialov{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);border:1.5px solid rgba(255,255,255,.9);border-radius:10px;width:200px;height:70px;z-index:6;display:none;box-shadow:0 0 0 2000px rgba(0,0,0,.35)}
+.serialov.on{display:block;animation:fu .5s both}
+.serialov span{position:absolute;bottom:-30px;left:0;right:0;text-align:center;font-size:12px;white-space:nowrap}
+
+/* Scan */
+.scan{position:relative;height:300px;border-radius:22px;overflow:hidden;background:#111}
+.scan img{width:100%;height:100%;object-fit:cover}
+.scan .line{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#e8e2d6,transparent);box-shadow:0 0 18px #e8e2d6;top:0;animation:sl 1.6s ease-in-out infinite;display:none}
+.scan.run .line{display:block}
+@keyframes sl{50%{top:calc(100% - 2px)}}
+.scan .corner{position:absolute;inset:22px;border:1px dashed rgba(255,255,255,.35);border-radius:16px}
+.offer{padding:18px;border-radius:18px;border:1px solid #2a2a2f;background:var(--card);margin-bottom:10px;text-align:left;width:100%}
+.offer.best{border-color:#3c6b5c;background:linear-gradient(130deg,#18231f,#151517)}
+.amount{font-family:var(--serif);font-size:34px;font-weight:500;line-height:1.1}
+
+/* Cercle */
+.ring{width:180px;height:180px;margin:10px auto 8px;position:relative}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .in{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.slot{aspect-ratio:3/4;border-radius:16px;border:1px dashed #3a3a40;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:11.5px;text-align:center;padding:8px;color:var(--muted)}
+.slot.used{border:1px solid #2f5d4f;background:linear-gradient(160deg,#1a2723,#141416);color:#d6e9e1}
+.slot .av{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#6d5b52,#2a2522);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:18px;color:#fff}
+.levels li{list-style:none;display:flex;gap:14px;padding:14px 0;border-bottom:1px solid #222226}
+.levels li:last-child{border:0}
+.levels .n{font-family:var(--serif);font-size:22px;width:24px;color:var(--dim)}
+.levels li.cur .n{color:var(--ivory)}
+
+/* Carte de membre */
+.mcard{width:100%;aspect-ratio:1.586;border-radius:20px;position:relative;overflow:hidden;background:linear-gradient(135deg,#1d1d20 0%,#0c0c0d 55%,#232326 100%);border:1px solid #3a3a40;box-shadow:0 30px 60px rgba(0,0,0,.6);padding:22px;display:flex;flex-direction:column;justify-content:space-between;transition:transform .2s ease-out;transform-style:preserve-3d}
+.mcard::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.12) 45%,transparent 60%);background-size:250% 100%;animation:sheen 4.5s ease-in-out infinite}
+@keyframes sheen{from{background-position:120% 0}to{background-position:-60% 0}}
+.mcard .num{font-family:var(--serif);font-size:15px;letter-spacing:.3em;color:#cfc9be}
+.mcard .name{font-family:var(--serif);font-size:26px}
+
+/* Profil */
+.toggle{width:52px;height:32px;border-radius:20px;background:#3a3a40;position:relative;transition:.25s;flex:none}
+.toggle::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;transition:.25s}
+.toggle.on{background:var(--green2)}
+.toggle.on::after{left:23px}
+.setting{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:16px 0;border-bottom:1px solid #222226;text-align:left;width:100%}
+.setting:last-child{border:0}
+.appicon{width:64px;height:64px;border-radius:15px;display:flex;align-items:center;justify-content:center;transition:.5s}
+
+/* Écran verrouillé */
+#s-lock{background:url(img/gmt.jpg) center/cover;padding:0}
+#s-lock .lg{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.55))}
+.lockin{position:relative;z-index:2;padding:110px 14px 0;text-align:center}
+.lockin .t{font-size:84px;font-weight:300;letter-spacing:-.02em;line-height:1}
+.notif{margin-top:24px;text-align:left;padding:14px;border-radius:22px;background:rgba(40,40,44,.55);backdrop-filter:blur(26px);display:flex;gap:12px;align-items:flex-start;animation:fu .6s both}
+.notif .ni{width:38px;height:38px;border-radius:10px;flex:none;display:flex;align-items:center;justify-content:center}
+
+/* Marchand */
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kpi{background:var(--card);border-radius:16px;padding:14px 12px;border:1px solid #222226}
+.kpi b{display:block;font-family:var(--serif);font-size:24px;font-weight:500}
+.kpi small{font-size:10.5px;color:var(--muted);letter-spacing:.04em}
+.viewer{display:flex;gap:12px;align-items:center;padding:13px 0;border-bottom:1px solid #222226}
+.viewer:last-child{border:0}
+.viewer img{width:46px;height:46px;border-radius:12px;object-fit:cover}
+.mini{padding:8px 12px;border-radius:12px;background:#24242a;font-size:12px;white-space:nowrap}
+.mini.wa{background:#1f3b2f;color:#bfe8d3}
+.req{padding:16px;border-radius:18px;background:var(--card);border:1px solid #232327;margin-bottom:10px;transition:.4s}
+.req.ok{border-color:#2f5d4f;background:#152019}
+.req.no{opacity:.35}
+.leak{padding:18px;border-radius:18px;background:linear-gradient(140deg,#2a1717,#161415);border:1px solid #4a2626}
+.bar{height:6px;border-radius:4px;background:#26262b;overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:var(--ivory);border-radius:4px}
+
+/* Étapes de demande */
+.steps{display:flex;gap:6px;margin:18px 0 26px}
+.steps i{flex:1;height:3px;border-radius:2px;background:#2a2a2f;transition:.4s}
+.steps i.on{background:var(--ivory)}
+.idcap{height:180px;border-radius:20px;border:1px dashed #44444a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--muted);font-size:13px;position:relative;overflow:hidden;margin-bottom:12px;width:100%}
+.idcap.done{border:1px solid #2f5d4f;color:#bfe8d3;background:#141e1a}
+.tl li{list-style:none;display:flex;gap:16px;position:relative;padding-bottom:26px}
+.tl li::before{content:"";position:absolute;left:11px;top:26px;bottom:2px;width:1px;background:#2a2a2f}
+.tl li:last-child::before{display:none}
+.tl .dot{width:23px;height:23px;border-radius:50%;border:1px solid #44444a;flex:none;display:flex;align-items:center;justify-content:center;transition:.4s;background:var(--bg)}
+.tl li.done .dot{background:var(--green);border-color:var(--green)}
+.tl li.wait .dot{border-color:var(--ivory)}
+.tl li.wait .dot::after{content:"";width:7px;height:7px;border-radius:50%;background:var(--ivory);animation:blink 1s infinite}
+.otp{display:flex;gap:8px;justify-content:space-between;margin:24px 0}
+.otp b{flex:1;height:62px;border-radius:14px;background:var(--card);border:1px solid #2c2c31;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:30px;font-weight:500;transition:.2s}
+.otp b.f{border-color:var(--ivory)}
+.sponsor{display:flex;gap:14px;align-items:center;padding:16px;border-radius:18px;background:var(--card);border:1px solid #2a2a2f;animation:fu .6s both}
+.sponsor .av{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#7a675d,#2b2522);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:22px}
+
+/* Toast */
+.toast{position:absolute;left:16px;right:16px;top:58px;z-index:100;padding:14px 16px;border-radius:18px;background:rgba(32,32,36,.92);backdrop-filter:blur(20px);border:1px solid #333;font-size:13.5px;line-height:1.45;transform:translateY(-220px);opacity:0;transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .3s;display:flex;gap:12px;align-items:flex-start}
+.toast.on{transform:none;opacity:1}
+@media (max-width:1000px){.toast{top:calc(10px + env(safe-area-inset-top))}}
+.spin{width:22px;height:22px;border:2px solid rgba(0,0,0,.2);border-top-color:#000;border-radius:50%;animation:rot .8s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+.qr{width:120px;height:120px;background:#fff;border-radius:14px;padding:10px;display:grid;grid-template-columns:repeat(21,1fr)}
+.qr i{background:#000}.qr i.w{background:#fff}
+.credits li{list-style:none;font-size:12.5px;color:var(--muted);padding:8px 0;border-bottom:1px solid #1f1f23;line-height:1.5}
+
+/* ---------- Bouton vol ---------- */
+.panic{margin-top:18px;width:100%;border-radius:24px;padding:20px 18px;background:radial-gradient(130% 150% at 50% 0%,#e3363c 0%,#a5151b 55%,#5a0a0d 100%);color:#fff;text-align:left;position:relative;overflow:hidden;border:1px solid rgba(255,120,120,.35);display:flex;gap:16px;align-items:center}
+.panic .core{width:62px;height:62px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex:none;position:relative}
+.panic .core::before,.panic .core::after{content:"";position:absolute;inset:-8px;border-radius:50%;border:2px solid rgba(255,255,255,.55);animation:ring 2s ease-out infinite}
+.panic .core::after{animation-delay:1s}
+@keyframes ring{from{transform:scale(.85);opacity:1}to{transform:scale(1.6);opacity:0}}
+.panic b{font-family:var(--serif);font-weight:500;font-size:24px;line-height:1.05;display:block}
+.redtop{background:linear-gradient(180deg,#3a0a0c,#0a0a0b 70%)}
+.tw{display:flex;gap:12px;align-items:center;padding:12px;border-radius:16px;background:var(--card);border:1px solid #242428;margin-bottom:8px;width:100%;text-align:left;transition:.2s}
+.tw img{width:54px;height:54px;border-radius:12px;object-fit:cover}
+.tw .ck{width:24px;height:24px;border-radius:50%;border:1.5px solid #555;flex:none;display:flex;align-items:center;justify-content:center}
+.tw.on{border-color:#e3363c;background:#1e1213}
+.tw.on .ck{background:#e3363c;border-color:#e3363c}
+.pin{display:flex;gap:14px;justify-content:center;margin:26px 0 8px}
+.pin i{width:16px;height:16px;border-radius:50%;border:1.5px solid #777;transition:.15s}
+.pin i.f{background:#fff;border-color:#fff}
+.pin.bad{animation:shake .45s}
+@keyframes shake{20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 10px 0}
+.keys button{height:66px;border-radius:50%;width:66px;margin:0 auto;background:#1c1c20;font-size:26px;font-weight:300}
+.keys button:active{background:#33333a}
+.alerthead{padding:58px 20px 14px;background:linear-gradient(180deg,#b3161c,#5a0a0d 70%,#0a0a0b)}
+@media (max-width:1000px){.alerthead{padding-top:calc(18px + env(safe-area-inset-top))}}
+.blink{animation:blink 1s infinite}
+.map2{height:250px;position:relative;overflow:hidden;background:#111;isolation:isolate;z-index:0}
+.map2 .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.7) contrast(1.1) saturate(.2) sepia(.35) hue-rotate(-30deg)}
+.radar{position:absolute;left:50%;top:50%;width:520px;height:520px;margin:-260px 0 0 -260px;border-radius:50%;background:conic-gradient(from 0deg,rgba(227,54,60,.0) 0deg,rgba(227,54,60,.0) 300deg,rgba(227,54,60,.35) 360deg);animation:sweep 3s linear infinite;z-index:450;pointer-events:none}
+@keyframes sweep{to{transform:rotate(360deg)}}
+.act{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid #222226;font-size:13.5px;line-height:1.45;opacity:.35;transition:opacity .4s}
+.act.done{opacity:1}
+.act .st{width:22px;height:22px;border-radius:50%;border:1.5px solid #555;flex:none;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.act.run .st{border-color:#e3363c;border-top-color:transparent;animation:rot .8s linear infinite}
+.act.done .st{background:#2f5d4f;border-color:#2f5d4f}
+.logl{font-size:12px;color:#d9d3c8;padding:7px 0;border-bottom:1px solid #1f1f23;display:flex;gap:10px;animation:fu .4s both}
+.logl b{color:#ff8a8f;font-weight:500;min-width:52px;font-variant-numeric:tabular-nums}
+.bigbtn{display:flex;align-items:center;justify-content:center;gap:10px;height:56px;border-radius:16px;font-weight:600;font-size:15px;width:100%}
+.dotlive{width:16px;height:16px;border-radius:50%;background:#ff3b40;border:3px solid #fff;box-shadow:0 0 0 0 rgba(255,59,64,.7);animation:pl 1.6s infinite}
+@keyframes pl{to{box-shadow:0 0 0 22px rgba(255,59,64,0)}}
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <!-- Présentation -->
+  <aside class="pitch">
+    <div class="kicker">Maquette · Application privée</div>
+    <h1>Le Cercle</h1>
+    <p class="lead">Ton appli à toi. On n'y entre pas&nbsp;: on y est invité. Et chaque membre fait entrer de nouveaux acheteurs.</p>
+    <div class="eyebrow" style="margin-bottom:10px">Parcours à essayer</div>
+    <nav class="tour" id="tour"></nav>
+  </aside>
+
+  <!-- Téléphone -->
+  <div class="phone">
+    <div class="screenwrap" id="app">
+      <div class="island"></div>
+      <div class="status"><span id="clock">9:41</span><span class="icons">
+        <svg width="18" height="12" viewBox="0 0 18 12" fill="#fff"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="#fff"><path d="M8 2.5c2.3 0 4.4.9 6 2.4l1.1-1.1A10 10 0 0 0 8 1 10 10 0 0 0 .9 3.8L2 4.9a8.4 8.4 0 0 1 6-2.4Zm0 3.2c1.4 0 2.7.5 3.7 1.4l1.1-1.1A7 7 0 0 0 8 4.2 7 7 0 0 0 3.2 6l1.1 1.1c1-.9 2.3-1.4 3.7-1.4Zm0 3.2c.6 0 1.1.2 1.5.6L8 11 6.5 9.5c.4-.4.9-.6 1.5-.6Z"/></svg>
+        <svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.5" fill="none" stroke="#fff" opacity=".4"/><rect x="2" y="2" width="18" height="9" rx="2" fill="#fff"/><rect x="25" y="4.5" width="1.5" height="4" rx=".7" fill="#fff" opacity=".4"/></svg>
+      </span></div>
+
+      <div class="toast" id="toast"></div>
+      <div class="veil" id="veil" onclick="closeSheet()"></div>
+
+      <!-- ===== 1. Accueil fermé ===== -->
+      <section class="screen on" id="s-splash" data-step="0">
+        <div class="splashbg"></div><div class="splashgrad"></div>
+        <div class="splashin">
+          <svg class="mono fade-up" viewBox="0 0 64 64" fill="none" stroke="#f2ede4" stroke-width="1"><circle cx="32" cy="32" r="30"/><circle cx="32" cy="32" r="24" opacity=".5"/><path d="M32 2v6" stroke-width="2"/><text x="32" y="38" text-anchor="middle" fill="#f2ede4" stroke="none" font-family="Cormorant Garamond" font-size="18" letter-spacing="1">LC</text></svg>
+          <div class="eyebrow fade-up" style="animation-delay:.1s">Montres d'exception · Première main</div>
+          <div class="logo-word fade-up" style="margin:12px 0 14px;animation-delay:.2s">Le Cercle</div>
+          <p class="serif fade-up" style="font-size:20px;font-style:italic;color:#d6d0c4;line-height:1.35;margin-bottom:30px;animation-delay:.3s">Une adresse que l'on ne trouve pas.<br>On y est invité.</p>
+          <div class="fade-up" style="display:flex;flex-direction:column;gap:10px;animation-delay:.45s">
+            <button class="btn" onclick="go('s-code')">J'ai reçu une invitation</button>
+            <button class="btn ghost" onclick="go('s-request')">Demander à entrer</button>
+          </div>
+          <p class="small dim fade-up" style="text-align:center;margin-top:18px;animation-delay:.6s">Aucune montre n'est visible sans être membre.</p>
+        </div>
+      </section>
+
+      <!-- ===== 2. Demande d'entrée ===== -->
+      <section class="screen" id="s-request" data-step="1">
+        <button class="backbtn" onclick="go('s-splash',1)">${BACK}</button>
+        <div class="pad" style="padding-top:110px">
+          <div class="eyebrow">Demande d'entrée</div>
+          <div class="steps"><i class="on"></i><i id="st2"></i><i id="st3"></i></div>
+          <div id="rq1">
+            <div class="h1" style="margin-bottom:8px">Qui êtes-vous&nbsp;?</div>
+            <p class="muted small" style="margin-bottom:24px">Chaque demande est lue par la maison. Elle reste confidentielle.</p>
+            <label class="field"><span>Prénom et nom</span><input value="Alexandre Morel"></label>
+            <label class="field"><span>Ville</span><input value="Marbella"></label>
+            <label class="field"><span>Qui vous recommande&nbsp;?</span><input value="Karim Benali" placeholder="Un membre du Cercle"></label>
+            <p class="small dim" style="margin:-4px 0 22px">Sans recommandation, votre demande passe par un court entretien vidéo avec la maison.</p>
+            <button class="btn" onclick="rqStep(2)">Continuer</button>
+          </div>
+          <div id="rq2" style="display:none">
+            <div class="h1" style="margin-bottom:8px">Ce que vous cherchez</div>
+            <p class="muted small" style="margin-bottom:22px">Pour vous montrer les bonnes pièces, au bon moment.</p>
+            <div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:26px" id="wants">
+              <button class="chip on">Patek Philippe</button><button class="chip on">Rolex</button><button class="chip">Audemars Piguet</button><button class="chip">Richard Mille</button><button class="chip">Cartier</button><button class="chip">Omega</button><button class="chip">Vintage</button>
+            </div>
+            <div class="eyebrow" style="margin-bottom:12px">Budget par pièce</div>
+            <div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:30px" id="budget">
+              <button class="chip">Moins de 20 k€</button><button class="chip">20 – 60 k€</button><button class="chip on">60 – 150 k€</button><button class="chip">Plus de 150 k€</button>
+            </div>
+            <button class="btn" onclick="rqStep(3)">Continuer</button>
+          </div>
+          <div id="rq3" style="display:none">
+            <div class="h1" style="margin-bottom:8px">Vérification</div>
+            <p class="muted small" style="margin-bottom:22px">Nous vérifions que chaque membre est bien la personne qu'il dit être. C'est ce qui protège tout le Cercle.</p>
+            <button class="idcap" id="cap1" onclick="capture(this,'Pièce d\'identité vérifiée')">${IDICON}<span>Photographier votre pièce d'identité</span></button>
+            <button class="idcap" id="cap2" style="height:120px" onclick="capture(this,'Visage reconnu')">${FACEICON}<span>Selfie de vérification</span></button>
+            <button class="btn" style="margin-top:12px" onclick="go('s-pending');runPending()">Envoyer ma demande</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 3. Demande en cours ===== -->
+      <section class="screen" id="s-pending" data-step="1">
+        <div class="pad" style="padding-top:110px">
+          <div class="eyebrow">Votre demande</div>
+          <div class="h1" style="margin:10px 0 30px">En cours d'examen</div>
+          <ul class="tl" id="tl">
+            <li class="done"><div class="dot">${CHECK}</div><div><b style="font-weight:500">Demande reçue</b><div class="small muted">À l'instant</div></div></li>
+            <li><div class="dot"></div><div><b style="font-weight:500">Identité vérifiée</b><div class="small muted">Pièce d'identité + visage</div></div></li>
+            <li><div class="dot"></div><div><b style="font-weight:500">Karim B. se porte garant</b><div class="small muted">Votre parrain confirme qu'il vous connaît</div></div></li>
+            <li><div class="dot"></div><div><b style="font-weight:500">Validation de la maison</b><div class="small muted">Sous 48 h, en général bien moins</div></div></li>
+          </ul>
+          <div id="accepted" style="display:none" class="fade-up">
+            <div class="card" style="text-align:center;padding:26px 18px;margin-top:6px;background:linear-gradient(140deg,#18231f,#141416);border-color:#2b4a40">
+              <div class="h2">Vous êtes accepté.</div>
+              <p class="small muted" style="margin:8px 0 18px">Bienvenue parmi les 148 membres du Cercle.</p>
+              <button class="btn" onclick="go('s-welcome')">Entrer</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 4. Code d'invitation ===== -->
+      <section class="screen" id="s-code" data-step="2">
+        <button class="backbtn" onclick="go('s-splash',1)">${BACK}</button>
+        <div class="pad" style="padding-top:120px">
+          <div class="eyebrow">Invitation</div>
+          <div class="h1" style="margin:10px 0 8px">Votre code</div>
+          <p class="muted small">Il est personnel, valable 72 h et ne fonctionne qu'une fois.</p>
+          <div class="otp" id="otp"><b></b><b></b><b></b><b></b><b></b><b></b></div>
+          <button class="btn dark" id="typecode" onclick="typeCode()">Saisir le code de démo</button>
+          <div id="sponsorbox" style="display:none;margin-top:22px">
+            <div class="eyebrow" style="margin-bottom:12px">Vous êtes invité par</div>
+            <div class="sponsor"><div class="av">K</div><div style="flex:1"><b style="font-weight:500">Karim B.</b><div class="small muted">Membre depuis 2023 · Cercle intérieur</div></div><span class="pill g">Garant</span></div>
+            <p class="small muted" style="margin:14px 2px 20px">Karim se porte garant pour vous. Il reste une vérification d'identité rapide.</p>
+            <button class="btn" onclick="go('s-request');rqStep(3)">Vérifier mon identité</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 5. Bienvenue ===== -->
+      <section class="screen" id="s-welcome" data-step="2">
+        <div class="pad" style="padding-top:120px;text-align:center">
+          <div class="eyebrow">Bienvenue</div>
+          <div class="h1" style="margin:10px 0 30px">Alexandre</div>
+          <div class="mcard" id="mcard" style="text-align:left">
+            <div class="between"><svg width="34" height="34" viewBox="0 0 64 64" fill="none" stroke="#f2ede4" stroke-width="1.4"><circle cx="32" cy="32" r="30"/><path d="M32 2v6" stroke-width="2.5"/></svg><span class="eyebrow" style="color:#cfc9be">Membre</span></div>
+            <div><div class="num">N° 0149</div><div class="name">Alexandre Morel</div><div class="small" style="color:#9a968f;margin-top:2px">Invité par Karim B. · Novembre 2026</div></div>
+          </div>
+          <p class="small muted" style="margin:28px 6px 24px">Votre carte vous suit dans l'appli. Plus vous achetez et parrainez, plus vous voyez les pièces tôt.</p>
+          <button class="btn" onclick="go('s-home')">Ouvrir le coffre</button>
+        </div>
+      </section>
+
+      <!-- ===== 6. Le coffre ===== -->
+      <section class="screen" id="s-home" data-tab="home" data-step="3">
+        <div class="hero" onclick="openWatch('nautilus')" style="cursor:pointer">
+          <img src="img/nautilus2.jpg" alt="Nautilus">
+          <div class="g"></div>
+          <div style="position:absolute;top:62px;left:22px;right:22px" class="between">
+            <div><div class="eyebrow" style="color:#d6d0c4">Bonsoir</div><div class="serif" style="font-size:24px">Alexandre</div></div>
+            <span class="pill">Membre · N° 0149</span>
+          </div>
+          <div class="txt">
+            <span class="pill r" style="margin-bottom:10px">● Arrivage privé</span>
+            <div class="h1" style="margin:10px 0 6px">Nautilus 5711/1A</div>
+            <div class="small" style="color:#d6d0c4">Cadran bleu · 2019 · Boîte et papiers</div>
+            <div class="row small" style="margin-top:10px;color:#cfc9be">Visible par tous les membres dans <b class="timer" data-cd="172000">47:46:40</b></div>
+          </div>
+        </div>
+        <div class="match" onclick="openWatch('rm030')" style="cursor:pointer">
+          <img src="img/rm030.jpg" alt="">
+          <div style="flex:1"><div class="eyebrow" style="color:#9fd3bf;letter-spacing:.18em">Votre chasse a abouti</div><div style="font-size:14px;margin-top:4px">La RM 030 bleue que vous cherchiez vient d'entrer.</div></div>
+          ${CHEV}
+        </div>
+        <div class="sect"><div class="h2">Nouveautés</div><span class="small muted">12 pièces</span></div>
+        <div class="hscroll" id="newrow"></div>
+        <div class="sect"><div class="h2">Cercle intérieur</div><span class="small muted">Niveau 3</span></div>
+        <div class="grid2" id="lockedgrid"></div>
+        <div class="sect"><div class="h2">Toute la collection</div></div>
+        <div class="grid2" id="allgrid"></div>
+      </section>
+
+      <!-- ===== 7. Fiche montre ===== -->
+      <section class="screen" id="s-watch" data-step="4" style="padding-bottom:130px">
+        <button class="backbtn" onclick="back()">${BACK}</button>
+        <div class="gal" id="gal"></div>
+        <div class="dots" id="dots"></div>
+        <div style="padding:24px 22px 0">
+          <div class="eyebrow" id="w-brand"></div>
+          <div class="h1" id="w-model" style="margin:8px 0 6px"></div>
+          <div class="muted" id="w-sub" style="font-size:14px"></div>
+          <div class="between" style="margin-top:18px">
+            <div><div class="eyebrow" style="font-size:9.5px">Prix membre</div><div class="serif" id="w-price" style="font-size:32px;font-weight:500"></div></div>
+            <span class="pill g">${SHIELD} Vérifiée</span>
+          </div>
+          <div class="watchers"><div class="avs"><i></i><i style="background:linear-gradient(135deg,#7b6a60,#2a2420)"></i><i style="background:linear-gradient(135deg,#4f5b66,#1d2328)"></i></div><span id="w-watch">3 membres regardent cette pièce</span></div>
+          <div class="specs" id="w-specs"></div>
+
+          <div class="sect" style="padding:30px 0 6px"><div class="h3">Passeport de la montre</div><span class="small muted">Historique complet</span></div>
+          <ul class="pass" id="w-pass"></ul>
+
+          <div class="sect" style="padding:28px 0 0"><div class="h3">Où se trouve-t-elle&nbsp;?</div></div>
+          <p class="small muted" style="margin-top:6px">Zone à 1 km près. L'adresse exacte n'est jamais affichée&nbsp;: le rendez-vous se fait dans un lieu sûr, choisi après réservation.</p>
+          <div class="map" id="map1"><div class="mapov"><span class="pill" id="w-zone">Puerto Banús · ±1 km</span></div></div>
+        </div>
+
+      </section>
+
+        <div class="sticky" id="watchbar">
+          <button class="btn ghost" style="width:auto;padding:0 18px;flex:none" onclick="go('s-video');startVideo()">${CAM}</button>
+          <button class="btn" onclick="openSheet()">Réserver 24 h</button>
+        </div>
+      <!-- Feuille de réservation -->
+      <div class="sheet" id="sheet">
+        <div class="grab"></div>
+        <div class="row" style="margin-bottom:18px"><img id="sh-img" style="width:62px;height:62px;border-radius:14px;object-fit:cover"><div><div class="h3" id="sh-model"></div><div class="small muted">Réservée pour vous seul pendant 24 h</div></div></div>
+        <div class="between small" style="padding:10px 0"><span class="muted">Acompte de réservation</span><b style="font-weight:500">1 000 €</b></div>
+        <div class="between small" style="padding:10px 0;border-top:1px solid #2a2a2f"><span class="muted">Remboursé si vous ne l'achetez pas</span><b style="font-weight:500;color:#9fd3bf">Oui</b></div>
+        <div class="between small" style="padding:10px 0 18px;border-top:1px solid #2a2a2f"><span class="muted">Déduit du prix si vous l'achetez</span><b style="font-weight:500;color:#9fd3bf">Oui</b></div>
+        <button class="apay" id="apay" onclick="pay()"><svg width="17" height="20" viewBox="0 0 17 20"><path d="M14.1 10.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.8-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9C3.5 4.8 1.9 5.8 1 7.4c-1.8 3.2-.5 7.9 1.3 10.5.9 1.3 1.9 2.7 3.3 2.6 1.3-.1 1.8-.8 3.4-.8s2 .8 3.4.8c1.4 0 2.3-1.3 3.2-2.6 1-1.5 1.4-2.9 1.4-3-.1 0-2.8-1.1-2.9-4.3ZM11.5 3c.7-.9 1.2-2 1.1-3.2-1 0-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.1 1.1.1 2.3-.6 3-1.5Z"/></svg>Pay</button>
+      </div>
+
+      <!-- ===== 8. Réservée + lieu sûr ===== -->
+      <section class="screen" id="s-safe" data-step="5">
+        <button class="backbtn" onclick="back()">${BACK}</button>
+        <div class="pad" style="padding-top:112px">
+          <div class="eyebrow">Réservée pour vous</div>
+          <div class="h1" style="margin:8px 0 4px" id="sf-model">Nautilus 5711/1A</div>
+          <div class="row" style="margin-bottom:26px"><span class="small muted">Elle vous attend encore</span><b class="timer" style="font-size:15px" data-cd="86399">23:59:59</b></div>
+
+          <div class="h3" style="margin-bottom:6px">Où voulez-vous la voir&nbsp;?</div>
+          <p class="small muted" style="margin-bottom:16px">Jamais chez vous, jamais chez nous. Un lieu neutre, discret et surveillé.</p>
+          <div id="places">
+            <button class="place on" onclick="pickPlace(this)"><div class="ic">${KEYI}</div><div style="flex:1"><b style="font-weight:500">Salon privé · Hôtel 5 étoiles</b><div class="small muted">Puerto Banús · agent de sécurité présent</div></div></button>
+            <button class="place" onclick="pickPlace(this)"><div class="ic">${BANKI}</div><div style="flex:1"><b style="font-weight:500">Salle des coffres · Banque partenaire</b><div class="small muted">Marbella centre · paiement sur place</div></div></button>
+            <button class="place" onclick="pickPlace(this)"><div class="ic">${CARI}</div><div style="flex:1"><b style="font-weight:500">Remise en main propre sécurisée</b><div class="small muted">Convoyeur assuré · suivi en direct</div></div></button>
+          </div>
+          <div class="eyebrow" style="margin:18px 0 10px">Quand&nbsp;?</div>
+          <div class="row" style="flex-wrap:wrap;gap:8px" id="slots">
+            <button class="chip">Demain 11:00</button><button class="chip on">Demain 17:30</button><button class="chip">Mardi 12:00</button>
+          </div>
+          <div class="card" style="margin-top:22px;text-align:center">
+            <div class="eyebrow">Votre code de remise</div>
+            <div class="codebox"><b>4</b><b>8</b><b>2</b><b>7</b></div>
+            <div style="display:flex;justify-content:center;margin:6px 0 12px"><div class="qr" id="qr"></div></div>
+            <p class="small muted">Le lieu exact s'affiche 2 h avant le rendez-vous. La montre n'est remise qu'avec ce code, à vous seul.</p>
+          </div>
+          <button class="btn" style="margin-top:16px" onclick="toast(ICONS.CHECKG,'<b>Rendez-vous confirmé</b><br>Demain 17:30 · Salon privé. Vous recevrez l\'adresse 2 h avant.');setTimeout(()=>go('s-home'),1800)">Confirmer le rendez-vous</button>
+        </div>
+      </section>
+
+      <!-- ===== 9. Vidéo en direct ===== -->
+      <section class="screen" id="s-video" data-step="6">
+        <div class="vid"><img id="vimg" src="img/nautilus.jpg" alt=""></div>
+        <div class="serialov" id="serial"><span>N° de série · vérifié en direct</span></div>
+        <div class="vtop"><span class="live"><i></i>EN DIRECT · <b class="timer" id="vtime">00:00</b></span><span class="pill">Karim · la maison</span></div>
+        <div class="self">Vous</div>
+        <div class="vbottom">
+          <div class="small" style="margin:0 4px 12px;color:#ddd">Demandez à voir&nbsp;:</div>
+          <div class="vasks">
+            <button class="on" onclick="vshow(this,'img/nautilus.jpg')">Le cadran</button>
+            <button onclick="vshow(this,'img/nautilus.jpg',1)">Le numéro de série</button>
+            <button onclick="vshow(this,'img/calibre.jpg')">Le mouvement</button>
+            <button onclick="vshow(this,'img/royaloak.jpg')">Au poignet</button>
+          </div>
+          <div class="vctrl">
+            <button>${MIC}</button>
+            <button class="hang" onclick="stopVideo();back()">${HANG}</button>
+            <button>${FLIP}</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 10. Trouve-la-moi ===== -->
+      <section class="screen" id="s-hunt" data-tab="hunt" data-step="7">
+        <div class="pad">
+          <div class="eyebrow">La chasse</div>
+          <div class="h1" style="margin:8px 0 8px">Trouve-la-moi</div>
+          <p class="muted small" style="margin-bottom:22px">Dites-nous la pièce. Si un membre du Cercle la possède, il peut nous la confier. Vous êtes prévenu le premier.</p>
+          <label class="field"><span>Référence ou modèle</span><input id="huntq" placeholder="ex. Daytona 116500 cadran blanc"></label>
+          <div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:20px">
+            <button class="chip" onclick="huntq.value=this.textContent">Daytona 116500LN</button><button class="chip" onclick="huntq.value=this.textContent">Royal Oak 15500</button><button class="chip" onclick="huntq.value=this.textContent">Nautilus 5712</button><button class="chip" onclick="huntq.value=this.textContent">GMT « Pepsi » 126710</button>
+          </div>
+          <div class="between small"><span class="muted">Budget maximum</span><b id="bval" style="font-weight:500">45 000 €</b></div>
+          <input type="range" min="10" max="300" value="45" style="width:100%;margin:14px 0 22px;accent-color:#f2ede4" oninput="bval.textContent=(+this.value).toLocaleString('fr-FR')+' 000 €'">
+          <button class="btn" onclick="launchHunt()">Lancer la chasse</button>
+
+          <div class="sect" style="padding:34px 0 12px"><div class="h3">Vos chasses</div></div>
+          <div id="hunts">
+            <div class="card" style="margin-bottom:10px;border-color:#2b4a40;background:linear-gradient(130deg,#18231f,#151517)">
+              <div class="between"><b style="font-weight:500">Richard Mille RM 030 bleue</b><span class="pill g">Trouvée</span></div>
+              <p class="small muted" style="margin:6px 0 12px">Un membre l'a confiée à la maison hier soir.</p>
+              <button class="btn dark" style="height:44px" onclick="openWatch('rm030')">Voir la pièce</button>
+            </div>
+            <div class="card" style="margin-bottom:10px">
+              <div class="between"><b style="font-weight:500">Nautilus 5712/1A</b><span class="pill">En cours</span></div>
+              <p class="small muted" style="margin-top:6px">1 membre la possède · proposition en discussion</p>
+              <div class="bar"><i style="width:70%"></i></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 11. Vendre / reprise ===== -->
+      <section class="screen" id="s-sell" data-tab="sell" data-step="8">
+        <div class="pad">
+          <div class="eyebrow">Reprise &amp; dépôt</div>
+          <div class="h1" style="margin:8px 0 8px">Votre montre,<br>en une photo</div>
+          <p class="muted small" style="margin-bottom:20px">Son prochain propriétaire est peut-être déjà dans le Cercle.</p>
+          <div class="scan" id="scan"><img src="img/santos.jpg" alt=""><div class="corner"></div><div class="line"></div></div>
+          <button class="btn" id="scanbtn" style="margin-top:14px" onclick="runScan()">${CAM} Analyser ma montre</button>
+          <div id="offers" style="display:none;margin-top:22px" class="fade-up">
+            <div class="between" style="margin-bottom:14px"><div><div class="h3">Cartier Santos 100 · Acier</div><div class="small muted">Reconnue · 2011 · très bon état estimé</div></div></div>
+            <button class="offer best" onclick="toast(ICONS.CHECKG,'<b>Offre acceptée</b><br>Rendez-vous de vérification proposé demain.')">
+              <div class="between"><span class="eyebrow" style="color:#9fd3bf">Rachat immédiat</span><span class="pill g">Payé sous 24 h</span></div>
+              <div class="amount" style="margin:8px 0 2px">6 900 €</div><div class="small muted">Offre ferme de la maison, sous réserve de vérification</div>
+            </button>
+            <button class="offer" onclick="toast(ICONS.CHECKG,'<b>Mise en dépôt</b><br>Elle sera montrée d\'abord aux 23 membres qui cherchent une Santos.')">
+              <div class="between"><span class="eyebrow">Dépôt dans le Cercle</span><span class="pill">≈ 12 jours</span></div>
+              <div class="amount" style="margin:8px 0 2px">7 800 €</div><div class="small muted">23 membres cherchent une Santos en ce moment</div>
+            </button>
+            <button class="offer" onclick="openWatch('nautilus5980')">
+              <div class="eyebrow">Échange</div>
+              <div style="margin-top:8px;font-size:14px">Valorisée <b>7 400 €</b> en échange d'une pièce du coffre.</div>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 12. Le Cercle (parrainage) ===== -->
+      <section class="screen" id="s-circle" data-tab="circle" data-step="9">
+        <div class="pad">
+          <div class="eyebrow">Parrainage</div>
+          <div class="h1" style="margin:8px 0 4px">Votre cercle</div>
+          <div class="ring">
+            <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="none" stroke="#26262b" stroke-width="3"/><circle id="ringp" cx="50" cy="50" r="44" fill="none" stroke="#f2ede4" stroke-width="3" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="276.5" style="transition:stroke-dashoffset 1.6s cubic-bezier(.2,.8,.2,1)"/></svg>
+            <div class="in"><div class="eyebrow" style="font-size:9px">Avoir disponible</div><div class="serif" style="font-size:34px;font-weight:500">1 380 €</div><div class="small muted" style="font-size:11px">sur votre prochaine pièce</div></div>
+          </div>
+          <p class="small muted" style="text-align:center;margin-bottom:22px">Encore 1 parrainage réussi pour passer au <b style="color:var(--ivory);font-weight:500">Cercle intérieur</b>.</p>
+          <div class="between"><div class="h3">3 invitations</div><span class="small muted">1 utilisée</span></div>
+          <div class="slots">
+            <div class="slot used"><div class="av">S</div><b style="font-weight:500;font-size:12.5px">Sofia M.</b><span>A acheté une Santos<br>+1 380 €</span></div>
+            <button class="slot" onclick="go('s-invite')"><span style="font-size:26px;font-family:var(--serif)">+</span>Inviter</button>
+            <button class="slot" onclick="go('s-invite')"><span style="font-size:26px;font-family:var(--serif)">+</span>Inviter</button>
+          </div>
+          <div class="card" style="margin-top:22px">
+            <div class="h3" style="margin-bottom:4px">Comment ça marche</div>
+            <ul class="levels">
+              <li><span class="n">1</span><div class="small"><b style="font-weight:500">Vous invitez quelqu'un de confiance.</b><br><span class="muted">Vous vous portez garant&nbsp;: c'est ce qui garde le Cercle sûr.</span></div></li>
+              <li><span class="n">2</span><div class="small"><b style="font-weight:500">Il achète une pièce.</b><br><span class="muted">Vous recevez 1 % du prix en avoir, sans limite.</span></div></li>
+              <li><span class="n">3</span><div class="small"><b style="font-weight:500">Vous montez de niveau.</b><br><span class="muted">Plus de niveau = pièces vues plus tôt, prix privés.</span></div></li>
+            </ul>
+          </div>
+          <div class="sect" style="padding:28px 0 10px"><div class="h3">Niveaux</div></div>
+          <ul class="levels card">
+            <li class="cur"><span class="n">I</span><div class="small" style="flex:1"><div class="between"><b style="font-weight:500">Membre</b><span class="pill g">Vous</span></div><span class="muted">Accès au coffre · 3 invitations</span></div></li>
+            <li><span class="n">II</span><div class="small"><b style="font-weight:500">Initié</b><br><span class="muted">1 achat ou 2 parrainages · arrivages 24 h avant</span></div></li>
+            <li><span class="n">III</span><div class="small"><b style="font-weight:500">Cercle intérieur</b><br><span class="muted">Pièces réservées · 48 h d'avance · prix privés · 5 invitations</span></div></li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ===== 13. Inviter ===== -->
+      <section class="screen" id="s-invite" data-step="9">
+        <button class="backbtn" onclick="back()">${BACK}</button>
+        <div class="pad" style="padding-top:112px">
+          <div class="eyebrow">Invitation personnelle</div>
+          <div class="h1" style="margin:8px 0 20px">Qui invitez-vous&nbsp;?</div>
+          <label class="field"><span>Prénom et nom</span><input id="invname" value="Julien Arnaud" oninput="invto.textContent=this.value||'—'"></label>
+          <div class="mcard" style="margin:18px 0 18px">
+            <div class="between"><svg width="30" height="30" viewBox="0 0 64 64" fill="none" stroke="#f2ede4" stroke-width="1.4"><circle cx="32" cy="32" r="30"/><path d="M32 2v6" stroke-width="2.5"/></svg><span class="eyebrow" style="color:#cfc9be">Invitation</span></div>
+            <div><div class="small" style="color:#9a968f">Pour</div><div class="name" id="invto">Julien Arnaud</div><div class="between" style="margin-top:8px"><span class="num" style="font-size:13px">CODE · AX7Q2M</span><span class="small" style="color:#9a968f">Valable 72 h</span></div></div>
+          </div>
+          <p class="small muted" style="margin-bottom:18px">L'invitation est à son nom&nbsp;: transférée à quelqu'un d'autre, elle ne fonctionne pas.</p>
+          <button class="btn green" onclick="toast(ICONS.CHECKG,'<b>Invitation envoyée sur WhatsApp</b><br>Vous serez prévenu dès que Julien entre.');setTimeout(()=>go('s-circle'),1600)">${WAI} Envoyer par WhatsApp</button>
+        </div>
+      </section>
+
+      <!-- ===== 14. Profil + mode discret ===== -->
+      <section class="screen" id="s-profile" data-tab="me" data-step="10">
+        <div class="pad">
+          <div class="eyebrow">Moi</div>
+          <div class="h1" style="margin:8px 0 18px">Alexandre</div>
+          <div class="card">
+            <div class="between"><div class="h3">Ma collection</div><span class="pill g">+12 % en 1 an</span></div>
+            <div class="serif" style="font-size:30px;font-weight:500;margin:6px 0 12px">212 400 €</div>
+            <div class="row" style="gap:10px"><img src="img/gmtbox.jpg" style="width:70px;height:70px;border-radius:14px;object-fit:cover"><img src="img/royaloak2.jpg" style="width:70px;height:70px;border-radius:14px;object-fit:cover"><div class="small muted">2 pièces achetées au Cercle · passeports à jour</div></div>
+          </div>
+          <div class="sect" style="padding:28px 0 4px"><div class="h3">Sécurité</div></div>
+          <div class="card" style="padding:4px 18px">
+            <button class="setting" onclick="toggleDiscreet()"><div><b style="font-weight:500">Mode discret</b><div class="small muted">Icône neutre, notifications sans nom de marque</div></div><span class="toggle" id="tgl"></span></button>
+            <div id="discprev" style="display:flex;gap:18px;align-items:center;padding:6px 0 16px">
+              <div class="appicon" id="appicon" style="background:#0b0b0c;border:1px solid #333"><svg width="34" height="34" viewBox="0 0 64 64" fill="none" stroke="#f2ede4" stroke-width="1.6"><circle cx="32" cy="32" r="28"/><path d="M32 4v6" stroke-width="3"/></svg></div>
+              <div class="small muted" id="disctxt">Sur votre écran d'accueil&nbsp;: <b style="color:var(--ivory);font-weight:500">Le Cercle</b></div>
+            </div>
+            <button class="setting" onclick="this.querySelector('.toggle').classList.toggle('on');toast(ICONS.SHIELD,'<b>Code leurre activé</b><br>Si quelqu\'un vous force à ouvrir l\'appli, tapez 0000 : elle s\'ouvre vide.')"><div><b style="font-weight:500">Code leurre</b><div class="small muted">Un 2<sup>e</sup> code ouvre une appli vide, sans aucune montre</div></div><span class="toggle"></span></button>
+            <button class="setting" onclick="this.querySelector('.toggle').classList.toggle('on')"><div><b style="font-weight:500">Zéro photo de moi</b><div class="small muted">Vos achats ne sont jamais montrés aux autres membres</div></div><span class="toggle on"></span></button>
+          </div>
+          <button class="btn dark" style="margin-top:16px" onclick="go('s-lock')">Voir l'écran verrouillé</button>
+        </div>
+      </section>
+
+      <!-- ===== 15. Écran verrouillé ===== -->
+      <section class="screen" id="s-lock" data-step="10" onclick="back()">
+        <div class="lg"></div>
+        <div class="lockin">
+          <div class="small" style="font-weight:500">dimanche 22 novembre</div>
+          <div class="t">9:41</div>
+          <div class="notif" id="lnotif"></div>
+          <p class="small" style="margin-top:22px;opacity:.7">Touchez pour revenir</p>
+        </div>
+      </section>
+
+      <!-- ===== 16. Espace de la maison (marchand) ===== -->
+      <section class="screen" id="s-dealer" data-step="11">
+        <div class="pad">
+          <div class="between"><div class="eyebrow">Espace de la maison</div><button class="pill" onclick="go('s-home')">Vue membre</button></div>
+          <div class="h1" style="margin:8px 0 18px">Bonsoir, Karim</div>
+          <div class="kpis">
+            <div class="kpi"><b>412 k€</b><small>Ventes du mois</small></div>
+            <div class="kpi"><b>148</b><small>Membres</small></div>
+            <div class="kpi"><b>31 %</b><small>Viennent d'un parrain</small></div>
+          </div>
+
+          <button class="panic" onclick="go('s-theft1')">
+            <span class="core"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#c4161c" stroke-width="2.2" stroke-linecap="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17v.5"/></svg></span>
+            <span style="flex:1"><span class="eyebrow" style="color:#ffd0d2;letter-spacing:.22em">Urgence</span><b>On m'a volé<br>une montre</b><span class="small" style="color:#ffd9da">Un code, et tout le réseau la cherche</span></span>
+          </button>
+
+          <div class="leak" style="margin-top:18px">
+            <div class="between"><span class="eyebrow" style="color:#f0b3b3">Fuite repérée</span><span class="pill r">Il y a 2 h</span></div>
+            <div style="font-size:14.5px;margin:10px 0 6px;line-height:1.45">La photo de la <b style="font-weight:500">Daytona 16523</b> circule sur un groupe de revendeurs.</div>
+            <div class="small muted">Le marquage invisible de la photo désigne la copie envoyée à <b style="color:var(--ivory);font-weight:500">Marc D. (membre n° 0093)</b> le 18/11.</div>
+            <div class="row" style="margin-top:14px"><button class="mini" onclick="toast(ICONS.SHIELD,'Accès de Marc D. suspendu. Son parrain est prévenu.')">Suspendre son accès</button><button class="mini">Voir la preuve</button></div>
+          </div>
+
+          <div class="sect" style="padding:28px 0 6px"><div class="h3">Qui regarde quoi</div><span class="small muted">En direct</span></div>
+          <div id="viewers"></div>
+
+          <div class="sect" style="padding:28px 0 10px"><div class="h3">Demandes d'entrée</div><span class="small muted" id="reqcount">3 en attente</span></div>
+          <div id="reqs"></div>
+
+          <div class="sect" style="padding:28px 0 10px"><div class="h3">Publier un arrivage</div></div>
+          <div class="card">
+            <div class="row"><img src="img/speedy.jpg" style="width:64px;height:64px;border-radius:14px;object-fit:cover"><div style="flex:1"><b style="font-weight:500">Speedmaster « Pre-Moon »</b><div class="small muted">1966 · 9 800 €</div></div></div>
+            <div class="eyebrow" style="margin:16px 0 10px">Qui la voit en premier&nbsp;?</div>
+            <div class="row" style="flex-wrap:wrap;gap:8px" id="aud"><button class="chip on">Cercle intérieur · 48 h</button><button class="chip">Ceux qui la chassent (4)</button><button class="chip">Tout le monde</button></div>
+            <button class="btn" style="margin-top:16px" onclick="toast(ICONS.CHECKG,'<b>Arrivage publié</b><br>4 chasseurs et 19 membres du Cercle intérieur prévenus. Tout le monde la verra dans 48 h.')">Publier</button>
+          </div>
+          <p class="small dim" style="margin-top:26px;text-align:center">Chaque photo envoyée porte un marquage invisible au nom du membre.</p>
+        </div>
+      </section>
+
+
+      <!-- ===== Vol 1 : quelle montre ===== -->
+      <section class="screen redtop" id="s-theft1" data-step="12">
+        <button class="backbtn" onclick="back()">${BACK}</button>
+        <div class="pad" style="padding-top:112px">
+          <div class="eyebrow" style="color:#ff9ea1">Alerte vol</div>
+          <div class="h1" style="margin:8px 0 6px">Quelle montre<br>vous a-t-on volée ?</div>
+          <p class="small muted" style="margin-bottom:18px">Chaque montre du stock est protégée par un traceur. Sélectionnez-en une ou plusieurs.</p>
+          <div id="twl"></div>
+          <button class="bigbtn" style="background:#e3363c;color:#fff;margin-top:14px" onclick="go('s-theft2');pinReset()">Continuer <span id="twn" style="opacity:.8"></span></button>
+          <p class="small dim" style="text-align:center;margin-top:12px">En danger immédiat ? Appelez d'abord le 112.</p>
+        </div>
+      </section>
+
+      <!-- ===== Vol 2 : code ===== -->
+      <section class="screen" id="s-theft2" data-step="12" style="background:#0a0a0b">
+        <button class="backbtn" onclick="back()">${BACK}</button>
+        <div class="pad" style="padding-top:112px;text-align:center">
+          <div class="eyebrow" style="color:#ff9ea1">Confirmation</div>
+          <div class="h2" style="margin:8px 0 6px">Entrez votre code<br>pour déclencher l'alerte</div>
+          <p class="small muted">Le code évite les fausses alertes.</p>
+          <div class="pin" id="pin"><i></i><i></i><i></i><i></i></div>
+          <p class="small dim">Code de démo : 2 8 0 4</p>
+          <div class="keys" id="keys"></div>
+          <p class="small dim" style="margin:18px 10px 0;line-height:1.5">Sous la menace ? Le <b style="color:#ddd;font-weight:500">code de contrainte</b> déclenche la même alerte en silence, sans rien afficher à l'écran.</p>
+        </div>
+      </section>
+
+      <!-- ===== Vol 3 : alerte en cours ===== -->
+      <section class="screen" id="s-theft3" data-step="12" style="padding-bottom:40px">
+        <div class="alerthead">
+          <div class="between"><span class="live" style="background:rgba(0,0,0,.35)"><i></i>ALERTE VOL · <b class="timer" id="al-t">00:00</b></span><span class="pill" style="background:rgba(0,0,0,.35)" id="al-n">1 montre</span></div>
+          <div class="h1" style="margin:14px 0 4px" id="al-model">Daytona 16523</div>
+          <div class="small" style="color:#ffd9da" id="al-trac">Traceur RX-0042 · mode chasse</div>
+        </div>
+        <div class="map2" id="map2"><div class="radar"></div>
+          <div style="position:absolute;left:12px;bottom:12px;z-index:500" class="pill" id="al-last">Dernière captation : il y a 0 s</div>
+        </div>
+        <div style="padding:16px 20px 0">
+          <div class="between"><div><div class="eyebrow">Téléphones qui la cherchent</div><div class="serif" style="font-size:32px;font-weight:500" id="al-phones">0</div></div>
+          <div style="text-align:right"><div class="eyebrow">Captations</div><div class="serif" style="font-size:32px;font-weight:500" id="al-caps">0</div></div></div>
+          <div class="eyebrow" style="margin:16px 0 4px">Ce qui se passe en ce moment</div>
+          <div id="acts"></div>
+          <div class="eyebrow" style="margin:18px 0 4px">Captations du traceur</div>
+          <div id="logs"></div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:20px">
+            <button class="bigbtn" style="background:#e3363c;color:#fff" onclick="toast(ICONS.SHIELD,'<b>Dans la vraie appli</b><br>Appel direct au 112, avec la dernière position de la montre affichée à l\'écran pour la donner à l\'opérateur.')">Appeler le 112</button>
+            <button class="bigbtn" style="background:#1c1c20;color:#fff" onclick="toast(ICONS.SHIELD,'<b>AlertCops</b><br>L\'appli officielle du ministère de l\'Intérieur s\'ouvre : l\'alerte et votre position partent vers la Police nationale ou la Guardia Civil.')">Prévenir la police (AlertCops)</button>
+            <button class="bigbtn" style="background:#1c1c20;color:#fff" onclick="toast(ICONS.CHECKG,'<b>Dossier police prêt</b><br>PDF : photos, numéros de série, factures et historique des positions du traceur. À remettre à la police ou à joindre à la plainte en ligne.')">Voir le dossier police</button>
+            <button class="bigbtn" style="background:transparent;color:#aaa;border:1px solid #333" onclick="stopAlert();toast(ICONS.CHECKG,'<b>Alerte désactivée</b><br>Le réseau arrête la chasse. Le code est demandé dans la vraie appli.');setTimeout(()=>{hist=[];go('s-dealer')},1200)">Désactiver l'alerte</button>
+          </div>
+        </div>
+      </section>
+      <!-- ===== 17. Crédits ===== -->
+      <section class="screen" id="s-credits">
+        <button class="backbtn" onclick="back()">${BACK}</button>
+        <div class="pad" style="padding-top:112px">
+          <div class="eyebrow">Maquette</div>
+          <div class="h2" style="margin:8px 0 14px">Crédits photo</div>
+          <p class="small muted" style="margin-bottom:12px">Photos d'illustration issues de Wikimedia Commons. Prix, membres et lieux sont fictifs. Les marques citées appartiennent à leurs propriétaires.</p>
+          <ul class="credits" id="creditlist"></ul>
+        </div>
+      </section>
+
+      <!-- Barre d'onglets -->
+      <nav class="tabbar hide" id="tabbar">
+        <button data-t="home" onclick="go('s-home')">${T_HOME}<span>Coffre</span></button>
+        <button data-t="hunt" onclick="go('s-hunt')">${T_HUNT}<span>Chasse</span></button>
+        <button data-t="sell" onclick="go('s-sell')">${T_SELL}<span>Vendre</span></button>
+        <button data-t="circle" onclick="go('s-circle');fillRing()">${T_CIRC}<span>Cercle</span></button>
+        <button data-t="me" onclick="go('s-profile')">${T_ME}<span>Moi</span></button>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Ce que personne n'a -->
+  <aside class="side">
+    <h3>Ce que personne n'a</h3>
+    <div class="new"><b>On demande à entrer</b><small>Invitation nominative ou demande examinée, identité vérifiée, un parrain qui se porte garant.</small></div>
+    <div class="new"><b>Les clients recrutent</b><small>1 % de chaque vente en avoir pour le parrain. Le cercle grandit sans publicité.</small></div>
+    <div class="new"><b>Zone floue, lieu sûr</b><small>La montre est située à 1 km près. Remise dans un salon d'hôtel ou une salle des coffres, avec un code.</small></div>
+    <div class="new"><b>Fuites tracées</b><small>Chaque photo porte un marquage invisible au nom du client. Une fuite = un nom.</small></div>
+    <div class="new"><b>Qui regarde quoi</b><small>Tu sais qui a regardé la Daytona 4 fois. Tu relances au bon moment.</small></div>
+    <div class="new"><b>Bouton « On m'a volé »</b><small>Un code, et tous les téléphones du réseau cherchent le traceur. 112, police et dossier en un geste.</small></div>
+    <div class="new"><b>Code leurre</b><small>Sous la contrainte, un 2<sup>e</sup> code ouvre une appli vide.</small></div>
+    <div class="foot">iPhone et Android · gratuite pour tes clients.<br>Prix, membres et lieux fictifs · <a href="#" onclick="go('s-credits');return false">crédits photo</a></div>
+  </aside>
+</div>
+
+<button class="tourbtn" onclick="tp.classList.add('open')">?</button>
+<div class="tourpanel" id="tp"><button class="x" onclick="tp.classList.remove('open')">×</button><div class="eyebrow">Maquette</div><h2>Le Cercle</h2><p class="small muted" style="margin-top:8px">Choisis un parcours&nbsp;:</p><nav class="tour" id="tour2"></nav></div>
+
+<script>
+/* ---------- Icônes ---------- */
+const I=(p,s=22)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const ICONS={
+ BACK:I('<path d="M15 18l-6-6 6-6"/>',20),
+ CHEV:I('<path d="M9 18l6-6-6-6"/>',18),
+ CHECK:I('<path d="M5 12l5 5 9-10"/>',14).replace('currentColor','#fff'),
+ CHECKG:I('<circle cx="12" cy="12" r="10"/><path d="M7 12l3.5 3.5L17 9"/>',22).replace('currentColor','#9fd3bf'),
+ SHIELD:I('<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',14),
+ CAM:I('<rect x="2" y="6" width="14" height="12" rx="3"/><path d="M16 10l6-3v10l-6-3"/>',20),
+ IDICON:I('<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2.2"/><path d="M6 16c.6-1.6 1.7-2.4 3-2.4s2.4.8 3 2.4M14 10h4M14 13h3"/>',30),
+ FACEICON:I('<circle cx="12" cy="10" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/><path d="M3 7V4h3M21 7V4h-3"/>',28),
+ KEYI:I('<path d="M3 21h18M5 21V8l7-4 7 4v13M9 21v-6h6v6"/>'),
+ BANKI:I('<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="3.5"/><path d="M12 8.5V7M15.5 12H17"/>'),
+ CARI:I('<path d="M3 16V9l2-4h10l4 4h2v7"/><circle cx="7.5" cy="16.5" r="2"/><circle cx="17.5" cy="16.5" r="2"/>'),
+ MIC:I('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>'),
+ HANG:I('<path d="M3 14c5-5 13-5 18 0l-2.5 2.5-3-1.5V12c-2-.7-5-.7-7 0v3l-3 1.5z"/>',26),
+ FLIP:I('<path d="M4 8h13l-3-3M20 16H7l3 3"/>'),
+ WAI:I('<path d="M3.5 20.5l1.3-4.2A8.5 8.5 0 1 1 8 19.4z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5l1.3-1.3-2-1-1 .8c-1-.5-1.8-1.3-2.3-2.3l.8-1-1-2z"/>',20),
+ T_HOME:I('<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="12" cy="12" r="3.5"/><path d="M12 8.5V7"/>'),
+ T_HUNT:I('<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>'),
+ T_SELL:I('<path d="M4 7h13l-3-3M20 17H7l3 3"/>'),
+ T_CIRC:I('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/>'),
+ T_ME:I('<circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.4-3.6 4.2-5.4 7.5-5.4s6.1 1.8 7.5 5.4"/>'),
+};
+const app=document.getElementById('app');
+app.innerHTML=app.innerHTML.replace(/\$\{(\w+)\}/g,(m,k)=>ICONS[k]??m);
+
+/* ---------- Données ---------- */
+const W={
+ nautilus:{brand:'Patek Philippe',model:'Nautilus 5711/1A',sub:'Cadran bleu · Acier · 2019',price:'138 000 €',img:['nautilus.jpg','nautilus2.jpg','calibre.jpg'],zone:'Puerto Banús',ll:[36.4867,-4.9512],specs:[['Boîte','40 mm acier'],['Mouvement','Automatique 26-330'],['Complet','Boîte et papiers'],['État','Très bon, jamais poli']],
+   pass:[['03/2019','Achetée chez un détaillant agréé, Genève'],['06/2023','Révision complète chez la marque'],['11/2026','Contrôlée par la maison · authentique'],['11/2026','Absente des fichiers de montres volées']],watch:'3 membres regardent cette pièce'},
+ rm030:{brand:'Richard Mille',model:'RM 030 Automatic',sub:'Céramique bleue · 2020',price:'Prix sur demande',img:['rm030.jpg'],zone:'Nueva Andalucía',ll:[36.4978,-4.9640],specs:[['Boîte','42,7 × 50 mm'],['Mouvement','Automatique squelette'],['Complet','Boîte et papiers'],['État','Excellent']],
+   pass:[['2020','Première main, boutique de Monaco'],['2025','Révision chez la marque'],['11/2026','Confiée par un membre du Cercle'],['11/2026','Absente des fichiers de montres volées']],watch:'Vous êtes le premier à la voir'},
+ daytona:{brand:'Rolex',model:'Daytona 16523',sub:'Or et acier · cadran blanc · 1997',price:'34 500 €',img:['daytona.jpg'],zone:'Marbella centre',ll:[36.5101,-4.8826],specs:[['Boîte','40 mm or et acier'],['Mouvement','Zenith El Primero'],['Complet','Boîte et papiers'],['État','Très bon']],
+   pass:[['1997','Vendue neuve à Milan'],['2018','Deuxième propriétaire'],['2024','Révision Rolex'],['11/2026','Contrôlée par la maison']],watch:'4 membres regardent cette pièce'},
+ gmt:{brand:'Rolex',model:'GMT-Master II « Pepsi »',sub:'Acier · Jubilé · 2021',price:'21 900 €',img:['gmt.jpg'],zone:'Puerto Banús',ll:[36.4851,-4.9555],specs:[['Boîte','40 mm acier'],['Lunette','Céramique bleu-rouge'],['Complet','Boîte et papiers'],['État','Comme neuve']],
+   pass:[['2021','Première main, détaillant agréé'],['11/2026','Contrôlée par la maison']],watch:'2 membres regardent cette pièce'},
+ gmtbox:{brand:'Rolex',model:'GMT-Master II 16710',sub:'Acier · lunette noire · 2003',price:'13 200 €',img:['gmtbox.jpg'],zone:'San Pedro',ll:[36.4870,-4.9900],specs:[['Boîte','40 mm acier'],['Mouvement','Calibre 3186'],['Complet','Boîte d\'origine'],['État','Très bon']],pass:[['2003','Vendue neuve à Paris'],['11/2026','Contrôlée par la maison']],watch:'1 membre regarde cette pièce'},
+ nautilus5980:{brand:'Patek Philippe',model:'Nautilus 5980R',sub:'Chronographe · or rose · 2015',price:'96 000 €',img:['nautilus5980.jpg'],zone:'Golden Mile',ll:[36.5040,-4.9200],specs:[['Boîte','40,5 mm or rose'],['Mouvement','CH 28-520'],['Complet','Boîte et papiers'],['État','Excellent']],pass:[['2015','Première main, Londres'],['2024','Révision chez la marque'],['11/2026','Contrôlée par la maison']],watch:'2 membres regardent cette pièce'},
+ royaloak2:{brand:'Audemars Piguet',model:'Royal Oak « Tradition d\'Excellence »',sub:'Série limitée · 2004',price:'Prix sur demande',img:['royaloak2.jpg'],zone:'Sotogrande',ll:[36.2900,-5.2800],specs:[['Boîte','44 mm'],['Série','Limitée'],['Complet','Coffret d\'origine'],['État','Collection']],pass:[['2004','Coffret numéroté'],['11/2026','Contrôlée par la maison']],watch:'Réservée au Cercle intérieur'},
+ santos:{brand:'Cartier',model:'Santos 100',sub:'Acier · 2011',price:'7 900 €',img:['santos.jpg'],zone:'Estepona',ll:[36.4270,-5.1450],specs:[['Boîte','Acier, grand modèle'],['Mouvement','Automatique'],['Complet','Papiers'],['État','Très bon']],pass:[['2011','Vendue neuve à Paris'],['11/2026','Contrôlée par la maison']],watch:'1 membre regarde cette pièce'},
+ speedy:{brand:'Omega',model:'Speedmaster « Pre-Moon »',sub:'Vintage · 1966',price:'9 800 €',img:['speedy.jpg'],zone:'Marbella centre',ll:[36.5110,-4.8850],specs:[['Boîte','42 mm acier'],['Mouvement','Calibre 321'],['Complet','Extrait d\'archives'],['État','Patine d\'origine']],pass:[['1966','Livrée en Suisse'],['11/2026','Contrôlée par la maison']],watch:'4 membres chassent ce modèle'},
+ royaloak:{brand:'Audemars Piguet',model:'Royal Oak « Jumbo » 15202',sub:'Extra-plate · acier · 2016',price:'72 000 €',img:['royaloak.jpg'],zone:'Puerto Banús',ll:[36.4880,-4.9500],specs:[['Boîte','39 mm acier'],['Mouvement','Calibre 2121'],['Complet','Boîte et papiers'],['État','Très bon']],pass:[['2016','Première main, Genève'],['11/2026','Contrôlée par la maison']],watch:'2 membres regardent cette pièce'},
+};
+const LOCKED=[['daytona2.jpg','Daytona sertie'],['rm67.jpg','RM 67-01 sertie']];
+function wcard(id,tag){const w=W[id];return `<button class="wcard" onclick="openWatch('${id}')"><div class="ph"><img loading="lazy" src="img/${w.img[0]}" alt="">${tag?`<span class="pill">${tag}</span>`:''}</div><b>${w.model}</b><small>${w.brand} · ${w.price}</small></button>`}
+newrow.innerHTML=['rm030','daytona','gmt','nautilus5980','royaloak'].map((k,i)=>wcard(k,i<2?'Nouveau':'')).join('');
+lockedgrid.innerHTML=LOCKED.map(([img,n])=>`<button class="wcard locked" onclick="toast(ICONS.SHIELD,'<b>Réservé au Cercle intérieur</b><br>Encore 1 parrainage réussi pour y accéder.')"><div class="ph"><img src="img/${img}" alt=""><div class="lockov">${I('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',22)}Cercle intérieur</div></div><b>${n}</b><small>Prix privé</small></button>`).join('');
+allgrid.innerHTML=['nautilus','royaloak2','gmtbox','speedy','santos','daytona'].map(k=>wcard(k)).join('');
+
+const CREDITS=[['nautilus.jpg, nautilus2.jpg','Patek Philippe SA','CC BY-SA 4.0'],['daytona.jpg','Clyde94','CC BY-SA 4.0'],['daytona2.jpg','Thomas Quine','CC BY 2.0'],['gmt.jpg, royaloak.jpg','OpaleHorse','CC BY-SA 4.0'],['gmtbox.jpg','Peter Wilson','CC BY-SA 4.0'],['rm030.jpg, rm67.jpg','Y. Leclercq','CC BY-SA 4.0'],['nautilus5980.jpg, royaloak2.jpg, santos.jpg, calibre.jpg','EMore98','CC BY-SA 4.0'],['speedy.jpg','Shane Lin','CC BY-SA 2.0']];
+creditlist.innerHTML=CREDITS.map(c=>`<li>${c[0]}<br><span style="color:var(--ivory)">${c[1]}</span> · ${c[2]} · Wikimedia Commons</li>`).join('');
+
+/* ---------- Navigation ---------- */
+const TOUR=[['s-splash','Écran d\'entrée fermé'],['s-request','Demander à entrer'],['s-code','Entrer avec une invitation'],['s-home','Le coffre'],['nautilus','Une montre · zone floue'],['s-safe','Réserver · lieu sûr'],['s-video','Vidéo en direct'],['s-hunt','Trouve-la-moi'],['s-sell','Revendre en une photo'],['s-circle','Parrainage'],['s-profile','Mode discret · code leurre'],['s-dealer','Ton espace à toi'],['s-theft1','Bouton « On m\'a volé »']];
+const tourHTML=TOUR.map(([id,l],i)=>`<button data-i="${i}" onclick="jump('${id}')"><span>${String(i+1).padStart(2,'0')}</span>${l}</button>`).join('');
+tour.innerHTML=tourHTML;tour2.innerHTML=tourHTML;
+function jump(id){tp.classList.remove('open');closeSheet();stopVideo();
+  if(W[id]){openWatch(id);return}
+  if(id==='s-pending')runPending();
+  if(id==='s-theft3'){go(id);startAlert();return}
+  if(id==='s-theft2')pinReset();
+  go(id);if(id==='s-circle')fillRing();if(id==='s-video')startVideo();if(id==='s-safe')buildQR();
+}
+let cur='s-splash',hist=[];
+function go(id,isBack){
+  if(id===cur)return;
+  const a=document.getElementById(cur),b=document.getElementById(id);
+  if(!isBack)hist.push(cur);
+  a.classList.remove('on');a.classList.toggle('back',!isBack);
+  b.classList.remove('back');b.scrollTop=0;
+  requestAnimationFrame(()=>b.classList.add('on'));
+  setTimeout(()=>a.classList.remove('back'),500);
+  cur=id;
+  const tab=b.dataset.tab;
+  tabbar.classList.toggle('hide',!tab);
+  tabbar.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.t===tab));
+  const st=b.dataset.step;
+  document.querySelectorAll('.tour button').forEach(x=>x.classList.toggle('on',x.dataset.i===st));
+  watchbar.style.opacity=id==='s-watch'?1:0;watchbar.style.pointerEvents=id==='s-watch'?'auto':'none';
+  if(id!=='s-theft3')stopAlert();
+  if(id==='s-safe')buildQR();
+  if(id==='s-dealer')buildDealer();
+  if(id==='s-lock')buildLock();
+}
+function back(){closeSheet();stopVideo();const p=hist.pop()||'s-home';go(p,1)}
+
+/* ---------- Toast ---------- */
+let tt;function toast(icon,html){clearTimeout(tt);const t=document.getElementById('toast');t.innerHTML=`<div style="flex:none">${icon}</div><div>${html}</div>`;t.classList.add('on');tt=setTimeout(()=>t.classList.remove('on'),3400)}
+
+/* ---------- Demande d'entrée ---------- */
+function rqStep(n){[1,2,3].forEach(i=>document.getElementById('rq'+i).style.display=i===n?'block':'none');st2.classList.toggle('on',n>=2);st3.classList.toggle('on',n>=3);document.getElementById('s-request').scrollTop=0}
+document.querySelectorAll('#wants .chip').forEach(c=>c.onclick=()=>c.classList.toggle('on'));
+['#budget','#slots','#aud'].forEach(s=>document.querySelectorAll(s+' .chip').forEach(c=>c.onclick=()=>{c.parentNode.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));c.classList.add('on')}));
+function capture(el,txt){if(el.classList.contains('done'))return;el.innerHTML='<div class="spin" style="border-color:rgba(255,255,255,.2);border-top-color:#fff"></div><span>Analyse…</span>';setTimeout(()=>{el.classList.add('done');el.innerHTML=ICONS.CHECKG+'<span>'+txt+'</span>'},1200)}
+let pendT=[];
+function runPending(){pendT.forEach(clearTimeout);pendT=[];const lis=[...document.querySelectorAll('#tl li')];accepted.style.display='none';
+  lis.forEach((l,i)=>{l.className=i===0?'done':'';l.querySelector('.dot').innerHTML=i===0?ICONS.CHECK:''});
+  lis.slice(1).forEach((l,i)=>{pendT.push(setTimeout(()=>l.className='wait',300+i*1500));pendT.push(setTimeout(()=>{l.className='done';l.querySelector('.dot').innerHTML=ICONS.CHECK},1400+i*1500))});
+  pendT.push(setTimeout(()=>accepted.style.display='block',1400+3*1500));
+}
+
+/* ---------- Code d'invitation ---------- */
+function typeCode(){const c='AX7Q2M',b=[...document.querySelectorAll('#otp b')];b.forEach(x=>{x.textContent='';x.classList.remove('f')});typecode.style.display='none';
+  c.split('').forEach((ch,i)=>setTimeout(()=>{b[i].textContent=ch;b[i].classList.add('f');if(i===5)setTimeout(()=>sponsorbox.style.display='block',400)},180*i))}
+
+/* ---------- Carte 3D ---------- */
+const mc=document.getElementById('mcard');
+app.addEventListener('pointermove',e=>{if(cur!=='s-welcome')return;const r=mc.getBoundingClientRect();const x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;mc.style.transform=`perspective(800px) rotateY(${x*14}deg) rotateX(${-y*14}deg)`});
+
+/* ---------- Comptes à rebours ---------- */
+const t0=Date.now();
+setInterval(()=>{document.querySelectorAll('[data-cd]').forEach(el=>{let s=Math.max(0,+el.dataset.cd-Math.floor((Date.now()-t0)/1000));el.textContent=[Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(v=>String(v).padStart(2,'0')).join(':')})},1000);
+
+/* ---------- Fiche montre + carte floue ---------- */
+let cw='nautilus',map1;
+function openWatch(id){cw=id;const w=W[id];
+  gal.innerHTML=w.img.map(s=>`<img src="img/${s}" alt="">`).join('');gal.scrollLeft=0;
+  dots.innerHTML=w.img.length>1?w.img.map((_,i)=>`<i class="${i?'':'on'}"></i>`).join(''):'';
+  gal.onscroll=()=>{const i=Math.round(gal.scrollLeft/gal.clientWidth);dots.querySelectorAll('i').forEach((d,j)=>d.classList.toggle('on',i===j))};
+  document.getElementById('w-brand').textContent=w.brand;document.getElementById('w-model').textContent=w.model;document.getElementById('w-sub').textContent=w.sub;
+  document.getElementById('w-price').textContent=w.price;document.getElementById('w-watch').textContent=w.watch;
+  document.getElementById('w-specs').innerHTML=w.specs.map(s=>`<div><small>${s[0]}</small>${s[1]}</div>`).join('');
+  document.getElementById('w-pass').innerHTML=w.pass.map(p=>`<li><span class="d">${p[0]}</span><span>${p[1]}</span></li>`).join('');
+  document.getElementById('w-zone').textContent=w.zone+' · ±1 km';
+  go('s-watch');setTimeout(()=>drawMap(w),420);
+}
+function drawMap(w){
+  if(typeof L==='undefined')return;
+  // centre décalé au hasard : même nous ne montrons pas le vrai point
+  const c=[w.ll[0]+(Math.random()-.5)*.006,w.ll[1]+(Math.random()-.5)*.006];
+  if(!map1){map1=L.map('map1',{zoomControl:false,attributionControl:true,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false,keyboard:false});
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(map1);map1._layers2=[]}
+  map1._layers2.forEach(l=>map1.removeLayer(l));map1._layers2=[];
+  [1000,800,600,400].forEach((r,i)=>map1._layers2.push(L.circle(c,{radius:r,stroke:i===0,color:'#f2ede4',weight:1,opacity:.5,dashArray:'3 5',fillColor:'#f2ede4',fillOpacity:.07}).addTo(map1)));
+  map1.setView(c,13);map1.invalidateSize();
+}
+
+/* ---------- Réservation ---------- */
+function openSheet(){const w=W[cw];document.getElementById('sh-img').src='img/'+w.img[0];document.getElementById('sh-model').textContent=w.model;apay.innerHTML=apay.dataset.h||apay.innerHTML;apay.dataset.h=apay.innerHTML;sheet.classList.add('open');veil.classList.add('open')}
+function closeSheet(){sheet.classList.remove('open');veil.classList.remove('open')}
+function pay(){apay.innerHTML='<div class="spin"></div>';setTimeout(()=>{apay.innerHTML=I('<path d="M5 12l5 5 9-10"/>',24).replace('currentColor','#000');setTimeout(()=>{closeSheet();sfmodel();go('s-safe')},700)},1300)}
+function sfmodel(){document.getElementById('sf-model').textContent=W[cw].model}
+function pickPlace(el){document.querySelectorAll('.place').forEach(p=>p.classList.remove('on'));el.classList.add('on')}
+function buildQR(){if(qr.childElementCount)return;let h='';for(let y=0;y<21;y++)for(let x=0;x<21;x++){const f=(x<7&&y<7)||(x>13&&y<7)||(x<7&&y>13);let on;if(f){const fx=x>13?x-14:x,fy=y>13?y-14:y;on=fx===0||fx===6||fy===0||fy===6||(fx>1&&fx<5&&fy>1&&fy<5)}else on=Math.random()>.52;h+=`<i class="${on?'':'w'}"></i>`}qr.innerHTML=h}
+
+/* ---------- Vidéo ---------- */
+let vt;function startVideo(){const s=Date.now();clearInterval(vt);vt=setInterval(()=>{const d=Math.floor((Date.now()-s)/1000);vtime.textContent=String(Math.floor(d/60)).padStart(2,'0')+':'+String(d%60).padStart(2,'0')},1000);vimg.src='img/'+W[cw].img[0]}
+function stopVideo(){clearInterval(vt);serial.classList.remove('on')}
+function vshow(b,src,ser){document.querySelectorAll('.vasks button').forEach(x=>x.classList.remove('on'));b.classList.add('on');vimg.style.opacity=0;setTimeout(()=>{vimg.src=src;vimg.style.opacity=1},250);vimg.style.transition='opacity .25s';serial.classList.toggle('on',!!ser)}
+
+/* ---------- Chasse ---------- */
+function launchHunt(){const q=huntq.value.trim()||'Daytona 116500LN';const d=document.createElement('div');d.className='card fade-up';d.style.marginBottom='10px';
+  d.innerHTML=`<div class="between"><b style="font-weight:500">${q.replace(/</g,'')}</b><span class="pill">Lancée</span></div><p class="small muted" style="margin-top:6px">Recherche parmi les 148 membres et les maisons partenaires…</p><div class="bar"><i style="width:8%;transition:width 2.5s"></i></div>`;
+  hunts.prepend(d);setTimeout(()=>d.querySelector('.bar i').style.width='35%',100);
+  setTimeout(()=>toast(ICONS.CHECKG,`<b>Bonne nouvelle</b><br>2 membres du Cercle possèdent une « ${q.replace(/</g,'')} ». La maison les contacte.`),2600);huntq.value=''}
+
+/* ---------- Vendre ---------- */
+function runScan(){scan.classList.add('run');scanbtn.innerHTML='Analyse en cours…';offers.style.display='none';setTimeout(()=>{scan.classList.remove('run');scanbtn.innerHTML=ICONS.CHECKG.replace('#9fd3bf','#0b0b0c')+' Montre reconnue';offers.style.display='block';document.getElementById('s-sell').scrollTo({top:330,behavior:'smooth'})},2200)}
+
+/* ---------- Cercle ---------- */
+function fillRing(){ringp.style.strokeDashoffset=276.5;setTimeout(()=>ringp.style.strokeDashoffset=276.5*(1-.66),200)}
+
+/* ---------- Mode discret ---------- */
+let disc=false;
+function toggleDiscreet(){disc=!disc;tgl.classList.toggle('on',disc);
+  appicon.style.background=disc?'linear-gradient(180deg,#fefefe,#e9e9ea)':'#0b0b0c';
+  appicon.innerHTML=disc?I('<path d="M6 4h12v16H6z"/><path d="M9 8h6M9 11h6M9 14h4"/>',32).replace('currentColor','#8a8a8e'):'<svg width="34" height="34" viewBox="0 0 64 64" fill="none" stroke="#f2ede4" stroke-width="1.6"><circle cx="32" cy="32" r="28"/><path d="M32 4v6" stroke-width="3"/></svg>';
+  disctxt.innerHTML=disc?'Sur votre écran d\'accueil&nbsp;: <b style="color:var(--ivory);font-weight:500">Carnet</b>. Personne ne devine.':'Sur votre écran d\'accueil&nbsp;: <b style="color:var(--ivory);font-weight:500">Le Cercle</b>'}
+function buildLock(){lnotif.innerHTML=disc
+  ?`<div class="ni" style="background:linear-gradient(180deg,#fefefe,#e9e9ea)">${I('<path d="M6 4h12v16H6z"/><path d="M9 8h6M9 11h6"/>',22).replace('currentColor','#8a8a8e')}</div><div style="flex:1"><div class="between small"><b style="font-weight:600">Carnet</b><span style="opacity:.6">maintenant</span></div><div class="small">Vous avez une nouvelle note.</div></div>`
+  :`<div class="ni" style="background:#0b0b0c;border:1px solid #444">${'<svg width="22" height="22" viewBox="0 0 64 64" fill="none" stroke="#f2ede4" stroke-width="2"><circle cx="32" cy="32" r="28"/><path d="M32 4v6" stroke-width="4"/></svg>'}</div><div style="flex:1"><div class="between small"><b style="font-weight:600">Le Cercle</b><span style="opacity:.6">maintenant</span></div><div class="small">La Nautilus 5711 que vous suivez vient d'arriver.</div></div>`;
+  lnotif.insertAdjacentHTML('afterend','')}
+
+/* ---------- Espace marchand ---------- */
+function buildDealer(){
+  const V=[['daytona','Marc-Antoine L.','a regardé la Daytona 4 fois','2 min 10 s'],['nautilus','Alexandre M.','sur la Nautilus en ce moment','en direct'],['royaloak','Sofia M.','a zoomé 9 fois sur la Royal Oak','1 min 42 s'],['speedy','Thomas R.','a ouvert le catalogue « Vintage »','6 pages']];
+  viewers.innerHTML=V.map(v=>`<div class="viewer"><img src="img/${W[v[0]].img[0]}"><div style="flex:1;min-width:0"><b style="font-weight:500;font-size:14px">${v[1]}</b><div class="small muted">${v[2]} · ${v[3]}</div></div><button class="mini wa" onclick="toast(ICONS.WAI,'<b>Message prêt sur WhatsApp</b><br>« Bonsoir ${v[1].split(' ')[0]}, la ${W[v[0]].model} vous plaît ? Je peux vous la montrer en vidéo ce soir. »')">Relancer</button></div>`).join('');
+  const R=[['Julien A.','Invité par Alexandre M.','Identité vérifiée · Marbella · 60–150 k€'],['Nadia K.','Invitée par Sofia M.','Identité vérifiée · Dubaï · plus de 150 k€'],['Paul V.','Sans parrain','Entretien vidéo à fixer · Madrid']];
+  reqs.innerHTML=R.map(r=>`<div class="req"><div class="between"><b style="font-weight:500">${r[0]}</b><span class="small muted">${r[1]}</span></div><div class="small muted" style="margin:6px 0 12px">${r[2]}</div><div class="row"><button class="mini" style="background:var(--ivory);color:#000" onclick="decide(this,1)">Accepter</button><button class="mini" onclick="decide(this,0)">Refuser</button></div></div>`).join('');
+  reqcount.textContent='3 en attente';
+}
+function decide(b,ok){const c=b.closest('.req');c.classList.add(ok?'ok':'no');b.parentNode.innerHTML=ok?'<span class="small" style="color:#9fd3bf">Accepté · bienvenue envoyée</span>':'<span class="small muted">Refusé</span>';const n=document.querySelectorAll('.req:not(.ok):not(.no)').length;reqcount.textContent=n?n+' en attente':'Tout est traité'}
+
+
+/* ---------- Bouton vol ---------- */
+const THEFT=[['daytona','RX-0042','Mallette n° 3'],['nautilus','RX-0017','Coffre'],['royaloak','AP-0008','Coffre'],['gmt','RX-0051','Mallette n° 3']];
+let tsel=new Set(['daytona']);
+function buildTheft(){twl.innerHTML=THEFT.map(([k,v,w])=>`<button class="tw ${tsel.has(k)?'on':''}" onclick="tsel.has('${k}')?tsel.delete('${k}'):tsel.add('${k}');buildTheft()"><img src="img/${W[k].img[0]}"><div style="flex:1;min-width:0"><b style="font-weight:500;font-size:14px">${W[k].model}</b><div class="small muted">Traceur ${v} · ${w}</div></div><span class="ck">${tsel.has(k)?I('<path d="M5 12l5 5 9-10"/>',14).replace('currentColor','#fff'):''}</span></button>`).join('');twn.textContent=tsel.size?'· '+tsel.size+' montre'+(tsel.size>1?'s':''):''}
+buildTheft();
+let pin='';
+keys.innerHTML=['1','2','3','4','5','6','7','8','9','','0','⌫'].map(k=>k?`<button onclick="pk('${k}')">${k}</button>`:'<span></span>').join('');
+function pinReset(){pin='';drawPin()}
+function drawPin(){document.querySelectorAll('#pin i').forEach((d,i)=>d.classList.toggle('f',i<pin.length))}
+function pk(k){if(k==='⌫'){pin=pin.slice(0,-1);drawPin();return}if(pin.length>=4)return;pin+=k;drawPin();
+  if(pin.length===4){setTimeout(()=>{if(pin==='2804'){go('s-theft3');startAlert()}else{const p=document.getElementById('pin');p.classList.add('bad');setTimeout(()=>{p.classList.remove('bad');pinReset()},500)}},250)}}
+const ACTS=[
+ ['Traceur passé en mode chasse','Elle émet maintenant toutes les secondes.'],
+ ['Tous les téléphones du réseau la cherchent','148 membres du Cercle + le réseau partenaire.'],
+ ['Alerte aux 37 marchands partenaires','« Si on vous propose cette montre, prévenez-nous. »'],
+ ['Déclaration « volée » prête pour le registre Enquirus','Une touche pour l\'envoyer au registre mondial consulté par la police et les marchands.'],
+ ['Dossier police prêt','Photos, numéros de série, factures, positions du traceur.'],
+ ['Plainte en ligne pré-remplie','À confirmer au commissariat sous 72 h.'],
+ ['Contacts d\'urgence et assureur prévenus','SMS envoyé avec la dernière position.']];
+const ROUTE=[[36.4851,-4.9555],[36.4872,-4.9470],[36.4905,-4.9380],[36.4950,-4.9300],[36.4990,-4.9200],[36.5025,-4.9100],[36.5050,-4.9000],[36.5072,-4.8920],[36.5090,-4.8860]];
+const STREETS=['Puerto Banús, Muelle Ribera','Av. Julio Iglesias','Bulevar Príncipe Alfonso de Hohenlohe','A-7, sortie Nueva Andalucía','Av. Ricardo Soriano','Milla de Oro, hôtel Puente Romano','Av. Ricardo Soriano, Marbella','Calle Ramón Gómez de la Serna','Plaza de los Naranjos'];
+let al={t:[],m:null,mk:null,line:null};
+function stopAlert(){al.t.forEach(clearInterval);al.t.forEach(clearTimeout);al.t=[]}
+function startAlert(){stopAlert();const k=[...tsel][0]||'daytona';const ent=THEFT.find(x=>x[0]===k);
+  document.getElementById('al-model').textContent=W[k].model;document.getElementById('al-trac').textContent='Traceur '+ent[1]+' · mode chasse';
+  document.getElementById('al-n').textContent=tsel.size+' montre'+(tsel.size>1?'s':'');
+  acts.innerHTML=ACTS.map(a=>`<div class="act"><span class="st"></span><div><b style="font-weight:500">${a[0]}</b><div class="small muted">${a[1]}</div></div></div>`).join('');
+  logs.innerHTML='';
+  const els=[...document.querySelectorAll('#acts .act')];
+  els.forEach((e,i)=>{al.t.push(setTimeout(()=>e.classList.add('run'),300+i*900));al.t.push(setTimeout(()=>{e.classList.remove('run');e.classList.add('done');e.querySelector('.st').innerHTML=ICONS.CHECK},1100+i*900))});
+  const t0=Date.now();let last=Date.now(),caps=0,phones=0,step=0;
+  al.t.push(setInterval(()=>{const d=Math.floor((Date.now()-t0)/1000);document.getElementById('al-t').textContent=String(Math.floor(d/60)).padStart(2,'0')+':'+String(d%60).padStart(2,'0');document.getElementById('al-last').textContent='Dernière captation : il y a '+Math.floor((Date.now()-last)/1000)+' s'},500));
+  al.t.push(setInterval(()=>{phones=Math.min(2401233,phones+Math.floor(80000+Math.random()*160000));document.getElementById('al-phones').textContent=phones.toLocaleString('fr-FR')},120));
+  setTimeout(()=>{
+    if(typeof L==='undefined')return;
+    if(!al.m){al.m=L.map('map2',{zoomControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false,keyboard:false});
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(al.m)}
+    if(al.mk)al.m.removeLayer(al.mk);if(al.line)al.m.removeLayer(al.line);
+    al.m.setView(ROUTE[0],14);al.m.invalidateSize();
+    al.line=L.polyline([ROUTE[0]],{color:'#ff3b40',weight:3,opacity:.85,dashArray:'2 6'}).addTo(al.m);
+    al.mk=L.marker(ROUTE[0],{icon:L.divIcon({className:'',html:'<div class="dotlive"></div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(al.m);
+    const cap=()=>{if(step>=ROUTE.length)return;const p=ROUTE[step];al.mk.setLatLng(p);al.line.addLatLng(p);al.m.panTo(p,{animate:true,duration:1});
+      caps++;last=Date.now();document.getElementById('al-caps').textContent=caps;
+      const h=new Date();const ts=h.getHours()+':'+String(h.getMinutes()).padStart(2,'0')+':'+String(h.getSeconds()).padStart(2,'0');
+      const who=['un téléphone du réseau','un membre du Cercle','un téléphone du réseau','un téléphone du réseau'][step%4];
+      const el=document.createElement('div');el.className='logl';el.innerHTML=`<b>${ts}</b><span>${STREETS[step]} · captée par ${who}</span>`;logs.prepend(el);
+      if(step===4)toast(ICONS.SHIELD,'<b>La montre se déplace</b><br>Direction Marbella centre, environ 30 km/h : sans doute en voiture.');
+      step++};
+    cap();al.t.push(setInterval(cap,3200));
+  },450);
+}
+/* Horloge */
+function clk(){const d=new Date();clock.textContent=d.getHours()+':'+String(d.getMinutes()).padStart(2,'0')}clk();setInterval(clk,20000);
+document.querySelector('.tour button').classList.add('on');
+if('serviceWorker' in navigator){} // installable via le manifeste
+</script>
+</body>
+</html>
